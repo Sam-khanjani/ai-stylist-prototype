@@ -32,6 +32,12 @@ def page_to_md(html):
     for button in main.select('button[aria-controls^="accordion"]'):
         button.name = "h3"
         button.attrs = {}
+    # Tables are built from divs of spans, keep the cells apart
+    for row in main.find_all("div"):
+        cells = row.find_all(recursive=False)
+        if len(cells) >= 2 and all(c.name == "span" and c.get_text(strip=True) for c in cells):
+            row.string = " | ".join(c.get_text(" ", strip=True) for c in cells)
+            row.name = "p"
     title = soup.find("h1").get_text(" ", strip=True) if soup.find("h1") else ""
     md = markdownify(str(main), heading_style="ATX", strip=["a", "button"])
     md = re.sub(r"\n\s*\n+", "\n\n", md).strip()

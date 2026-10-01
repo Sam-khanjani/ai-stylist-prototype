@@ -35,6 +35,8 @@ def fetch(url, delay):
     if r.status_code in (403, 429, 503):
         sys.exit(f"Got {r.status_code} on {url}, stopping.")
     r.raise_for_status()
+    # Server sends no charset, so requests would fall back to latin-1
+    r.encoding = "utf-8"
     return r
 
 

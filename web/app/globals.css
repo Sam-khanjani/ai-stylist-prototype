@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Tokens follow the reference site's scale: monochrome palette, light body text, tight grid */
+@theme {
+  --color-gray-100: #fafafa;
+  --color-gray-200: #f6f6f6;
+  --color-gray-300: #efefef;
+  --color-gray-400: #e1e1e1;
+  --color-gray-500: #c6c6c6;
+  --color-gray-600: #898989;
+  --color-gray-700: #454545;
+  --color-gray-800: #2d2e2c;
+  --color-gray-900: #202020;
+
+  --color-background: #ffffff;
+  --color-surface: var(--color-gray-300);
+  --color-text: var(--color-gray-800);
+  --color-text-secondary: var(--color-gray-600);
+  --color-border: var(--color-gray-400);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+
+  --tracking-heading: -0.015em;
+  --radius-md: 4px;
+  --spacing-header: 52px;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-weight: 300;
+}
