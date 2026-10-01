@@ -1,0 +1,4 @@
+requests
+protego
+beautifulsoup4
+markdownify

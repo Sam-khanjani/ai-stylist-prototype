@@ -240,6 +240,6 @@ token.json
 *.tfvars
 !*.tfvars.example
 
-# Local data caches (scraped pages, generated data)
-data/cache/
+# Crawled data stays out of the repo
+data/
 .DS_Store
