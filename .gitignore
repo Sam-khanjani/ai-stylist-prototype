@@ -216,3 +216,30 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Secrets & credentials (never commit) ---
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials*.json
+*service-account*.json
+*-sa-key*.json
+application_default_credentials.json
+client_secret*.json
+token.json
+.gcloud/
+
+# Terraform state may contain secrets
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# Local data caches (scraped pages, generated data)
+data/cache/
+.DS_Store
