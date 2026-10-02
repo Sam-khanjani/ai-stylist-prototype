@@ -77,8 +77,8 @@ def chat_stream(req: ChatRequest, visitor_id: str = Depends(visitor)):
         yield f"event: conversation\ndata: {json.dumps(conversation_id)}\n\n"
         for event, data in stream_agent(req.message, memory, conversation_id):
             if event == "done":
-                history.add_message(conversation_id, "assistant", data["reply"], data)
                 latency_ms = int((time.monotonic() - start) * 1000)
+                history.add_message(conversation_id, "assistant", data["reply"], data, latency_ms)
                 history.record_event(data["route"], data["fallback"], latency_ms, data["trace_id"])
             yield f"event: {event}\ndata: {json.dumps(data)}\n\n"
         # Update the memory after the answer is sent, so the customer doesn't wait for it

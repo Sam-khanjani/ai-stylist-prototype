@@ -6,7 +6,7 @@ import json
 import os
 import uuid
 
-import psycopg
+import db
 
 RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "30"))
 MEMORY_MESSAGES = 10  # the summary the bot remembers is built from this many recent messages
@@ -55,6 +55,15 @@ CREATE TABLE IF NOT EXISTS eval_runs (
     summary jsonb NOT NULL,
     failures jsonb NOT NULL
 );
+
+-- Added later; IF NOT EXISTS keeps existing databases working
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS route text;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS latency_ms integer;
+ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS gate_passed boolean;
+ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS baseline text;
+ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS regressions jsonb;
+ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS fixed jsonb;
+ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS saved_as_baseline boolean;
 """
 
 EVENT_RETENTION_DAYS = 365
@@ -64,13 +73,13 @@ FRESH = f"updated_at > now() - interval '{RETENTION_DAYS} days'"
 
 
 def init():
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         conn.execute(SCHEMA)
 
 
 def cleanup() -> int:
     """Delete conversations (and their messages) older than the retention period."""
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         deleted = conn.execute(f"DELETE FROM conversations WHERE NOT ({FRESH})").rowcount
         # Events keep only counts; drop their link to the (text-holding) Langfuse trace with the chat
         conn.execute(f"UPDATE events SET trace_id = NULL WHERE trace_id IS NOT NULL AND created_at < now() - interval '{RETENTION_DAYS} days'")
@@ -79,7 +88,7 @@ def cleanup() -> int:
 
 
 def record_event(route: str, fallback: bool, latency_ms: int, trace_id: str | None):
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         conn.execute(
             "INSERT INTO events (route, fallback, latency_ms, trace_id) VALUES (%s, %s, %s, %s)",
             (route, fallback, latency_ms, trace_id),
@@ -87,7 +96,7 @@ def record_event(route: str, fallback: bool, latency_ms: int, trace_id: str | No
 
 
 def list_conversations(visitor_id: str) -> list[dict]:
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         rows = conn.execute(
             f"SELECT id, title, updated_at FROM conversations WHERE visitor_id = %s AND {FRESH} ORDER BY updated_at DESC",
             (visitor_id,),
@@ -97,7 +106,7 @@ def list_conversations(visitor_id: str) -> list[dict]:
 
 def get_conversation(visitor_id: str, conversation_id: str) -> dict | None:
     """Returns None unless the conversation belongs to this visitor."""
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         row = conn.execute(
             f"SELECT summary FROM conversations WHERE id = %s AND visitor_id = %s AND {FRESH}",
             (conversation_id, visitor_id),
@@ -115,19 +124,19 @@ def get_conversation(visitor_id: str, conversation_id: str) -> dict | None:
 def create_conversation(visitor_id: str, first_message: str) -> str:
     conversation_id = str(uuid.uuid4())
     title = first_message if len(first_message) <= 60 else first_message[:57] + "..."
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         conn.execute(
             "INSERT INTO conversations (id, visitor_id, title) VALUES (%s, %s, %s)", (conversation_id, visitor_id, title)
         )
     return conversation_id
 
 
-def add_message(conversation_id: str, role: str, text: str, result: dict | None = None):
+def add_message(conversation_id: str, role: str, text: str, result: dict | None = None, latency_ms: int | None = None):
     result = result or {}
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         conn.execute(
-            "INSERT INTO messages (conversation_id, role, text, sources, products, fallback, trace_id)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            "INSERT INTO messages (conversation_id, role, text, sources, products, fallback, trace_id, route, latency_ms)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 conversation_id,
                 role,
@@ -136,13 +145,15 @@ def add_message(conversation_id: str, role: str, text: str, result: dict | None 
                 json.dumps(result["products"]) if "products" in result else None,
                 result.get("fallback"),
                 result.get("trace_id"),
+                result.get("route"),
+                latency_ms,
             ),
         )
         conn.execute("UPDATE conversations SET updated_at = now() WHERE id = %s", (conversation_id,))
 
 
 def recent_messages(conversation_id: str) -> list[tuple[str, str]]:
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         rows = conn.execute(
             "SELECT role, text FROM messages WHERE conversation_id = %s ORDER BY id DESC LIMIT %s",
             (conversation_id, MEMORY_MESSAGES),
@@ -151,12 +162,12 @@ def recent_messages(conversation_id: str) -> list[tuple[str, str]]:
 
 
 def set_summary(conversation_id: str, summary: str):
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         conn.execute("UPDATE conversations SET summary = %s WHERE id = %s", (summary, conversation_id))
 
 
 def set_vote(visitor_id: str, trace_id: str, value: int):
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         conn.execute(
             "UPDATE messages m SET vote = %s FROM conversations c"
             " WHERE m.conversation_id = c.id AND c.visitor_id = %s AND m.trace_id = %s",
@@ -167,7 +178,7 @@ def set_vote(visitor_id: str, trace_id: str, value: int):
 
 def delete_visitor(visitor_id: str) -> list[str]:
     """Delete all of a visitor's chats; returns their trace ids so they can be removed from Langfuse too."""
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         trace_ids = conn.execute(
             "SELECT m.trace_id FROM messages m JOIN conversations c ON c.id = m.conversation_id"
             " WHERE c.visitor_id = %s AND m.trace_id IS NOT NULL",

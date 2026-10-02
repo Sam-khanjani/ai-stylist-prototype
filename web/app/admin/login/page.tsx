@@ -14,7 +14,14 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
           required
           className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-gray-600"
         />
-        {error && <p className="text-xs text-red-700">Wrong password.</p>}
+        {!process.env.ADMIN_PASSWORD ? (
+          <p className="text-xs text-red-700">
+            Admin password is not configured on this server (ADMIN_PASSWORD). Locally: add it to web/.env.local and restart
+            npm run dev.
+          </p>
+        ) : (
+          error && <p className="text-xs text-red-700">Wrong password.</p>
+        )}
         <button className="w-full rounded-md bg-gray-800 py-2 text-sm font-medium text-white hover:bg-gray-900">
           Sign in
         </button>

@@ -6,6 +6,6 @@ langchain
 langchain-google-genai
 langfuse
 google-genai
-psycopg[binary]
+psycopg[binary,pool]
 pgvector
 numpy

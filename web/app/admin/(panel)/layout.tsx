@@ -3,35 +3,23 @@ import { requireAdmin } from "@/lib/admin";
 
 export const metadata = { title: "Admin · Stylist", robots: { index: false } };
 
-const TABS = [
-  ["/admin", "Overview"],
-  ["/admin/monitoring", "Monitoring"],
-  ["/admin/conversations", "Conversations"],
-  ["/admin/gaps", "Gaps & 👎"],
-  ["/admin/evals", "Evals"],
-  ["/admin/status", "Status"],
-];
-
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
   return (
-    <>
-      <header className="flex h-header items-center gap-6 border-b border-border px-4 lg:px-5">
+    <div className="flex min-h-screen flex-col bg-gray-200">
+      <header className="sticky top-0 z-20 flex h-header items-center gap-8 bg-gray-900 px-4 text-white lg:px-6">
         <Link href="/admin" className="text-lg font-medium tracking-[0.2em] uppercase">
-          Stylist <span className="text-xs tracking-normal text-text-secondary normal-case">admin</span>
+          Stylist <span className="ml-1 rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-medium tracking-normal normal-case">admin</span>
         </Link>
-        <nav className="flex flex-1 gap-5 overflow-x-auto text-sm whitespace-nowrap">
-          {TABS.map(([href, label]) => (
-            <Link key={href} href={href} className="hover:text-text-secondary">
-              {label}
-            </Link>
-          ))}
-        </nav>
+        <span className="flex-1" />
+        <a href="/" target="_blank" className="hidden text-xs text-white/60 hover:text-white sm:block">
+          Open site ↗
+        </a>
         <form method="post" action="/api/admin/logout">
-          <button className="text-xs text-text-secondary hover:text-text">Sign out</button>
+          <button className="text-xs text-white/60 hover:text-white">Sign out</button>
         </form>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-    </>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-6">{children}</main>
+    </div>
   );
 }

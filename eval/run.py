@@ -222,9 +222,7 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
         print("\nNo baseline yet. Run with --save-baseline to create one.")
         return 0
 
-    was = {r["id"]: r["passed"] for r in baseline["results"]}
-    regressions = [r for r in results if was.get(r["id"]) and not r["passed"]]
-    fixed = [r for r in results if was.get(r["id"]) is False and r["passed"]]
+    regressions, fixed = compare(results, baseline)
     print(f"\nCompared with baseline {baseline['run']}: {len(regressions)} regression(s), {len(fixed)} fixed")
     for r in regressions:
         label = "ERROR     " if r["error"] else "REGRESSION"
@@ -234,17 +232,37 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
     return 1 if regressions else 0
 
 
-def save_to_db(run_name: str, summary: dict, results: list[dict]):
-    """Full runs go to the database so the admin dashboard can show the trend."""
+def compare(results: list[dict], baseline: dict) -> tuple[list[dict], list[dict]]:
+    """Regressions passed in the baseline and fail now; fixed is the opposite."""
+    was = {r["id"]: r["passed"] for r in baseline["results"]}
+    regressions = [r for r in results if was.get(r["id"]) and not r["passed"]]
+    fixed = [r for r in results if was.get(r["id"]) is False and r["passed"]]
+    return regressions, fixed
+
+
+def save_to_db(run_name: str, summary: dict, results: list[dict], baseline: dict | None, saved_as_baseline: bool):
+    """Full runs go to the database so the admin dashboard can show the trend and the gate history."""
     import history
     import psycopg
 
     failures = [{"id": r["id"], "question": r["question"], "checks": failed_checks(r)} for r in results if not r["passed"]]
+    regressions, fixed = compare(results, baseline) if baseline else ([], [])
+    brief = lambda rs: [{"id": r["id"], "question": r["question"]} for r in rs]  # noqa: E731
     history.init()
     with psycopg.connect() as conn:
         conn.execute(
-            "INSERT INTO eval_runs (run, summary, failures) VALUES (%s, %s, %s)",
-            (run_name, json.dumps(summary), json.dumps(failures)),
+            "INSERT INTO eval_runs (run, summary, failures, gate_passed, baseline, regressions, fixed, saved_as_baseline)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                run_name,
+                json.dumps(summary),
+                json.dumps(failures),
+                not regressions if baseline else None,  # no baseline = nothing to gate against
+                baseline["run"] if baseline else None,
+                json.dumps(brief(regressions)),
+                json.dumps(brief(fixed)),
+                saved_as_baseline,
+            ),
         )
 
 
@@ -271,12 +289,12 @@ def main():
     run = {"run": run_name, "judge": args.judge, "summary": summary, "results": results}
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / f"{run_name}.json").write_text(json.dumps(run, indent=1, ensure_ascii=False))
-    if not args.only:
-        save_to_db(run_name, summary, results)
 
     # Only compare full runs; a subset would show every skipped question as missing
     baseline = json.loads(BASELINE.read_text()) if BASELINE.exists() and not args.only else None
     code = report(summary, results, baseline)
+    if not args.only:
+        save_to_db(run_name, summary, results, baseline, args.save_baseline)
 
     if args.save_baseline:
         BASELINE.write_text(json.dumps(run, indent=1, ensure_ascii=False))

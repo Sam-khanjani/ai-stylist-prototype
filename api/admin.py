@@ -1,19 +1,31 @@
 """Read-only data for the admin dashboard. Only the web app can call the api, and it checks the admin login."""
 import json
 import os
-import uuid
+import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
-import psycopg
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+import db
 import history
 
 router = APIRouter(prefix="/admin")
+CACHE_SECONDS = 60  # Langfuse answers are cached this long; its API takes ~1 s or more per call
+LANGFUSE_LIMITS = {"timeout_in_seconds": 8, "max_retries": 0}
+
+
+def describe(e: Exception) -> str:
+    """Short readable error: Langfuse's ApiError puts the headers first, which hides the actual message."""
+    body = getattr(e, "body", None)
+    message = (body.get("message") or body.get("error") or str(body)) if isinstance(body, dict) else (body or str(e))
+    status = getattr(e, "status_code", None)
+    return f"{status} · {message}"[:200] if status else str(message)[:200]
 
 
 def rows(sql: str, params=()) -> list[dict]:
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         cur = conn.execute(sql, params)
         names = [c.name for c in cur.description]
         return [dict(zip(names, r)) for r in cur.fetchall()]
@@ -40,33 +52,6 @@ def overview(days: int = 30):
     )
 
 
-@router.get("/conversations")
-def conversations():
-    return rows(
-        f"""
-        SELECT c.id::text, c.title, c.updated_at, count(m.id) AS messages,
-               coalesce(bool_or(m.fallback), false) AS fallback,
-               count(*) FILTER (WHERE m.vote = 1) AS up,
-               count(*) FILTER (WHERE m.vote = 0) AS down
-        FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id
-        WHERE c.{history.FRESH}
-        GROUP BY c.id ORDER BY c.updated_at DESC LIMIT 200
-        """
-    )
-
-
-@router.get("/conversations/{conversation_id}")
-def conversation(conversation_id: uuid.UUID):
-    found = rows(f"SELECT title, summary FROM conversations WHERE id = %s AND {history.FRESH}", (conversation_id,))
-    if not found:
-        raise HTTPException(404, "conversation not found")
-    messages = rows(
-        "SELECT role, text, sources, products, fallback, vote, created_at FROM messages WHERE conversation_id = %s ORDER BY id",
-        (conversation_id,),
-    )
-    return found[0] | {"messages": messages}
-
-
 @router.get("/gaps")
 def gaps():
     """Answers that fell back to contact options or got a thumbs down, with the question that led to them."""
@@ -87,7 +72,10 @@ def gaps():
 
 @router.get("/evals")
 def evals():
-    return rows("SELECT run, created_at, summary, failures FROM eval_runs ORDER BY created_at DESC LIMIT 20")
+    return rows(
+        "SELECT run, created_at, summary, failures, gate_passed, baseline, regressions, fixed, saved_as_baseline"
+        " FROM eval_runs ORDER BY created_at DESC LIMIT 30"
+    )
 
 
 AGENT_STEPS = ["route", "policy_search", "product_search", "answer", "fallback"]
@@ -98,11 +86,21 @@ def any_of(column: str, values: list[str]) -> dict:
     return {"column": column, "operator": "any of", "value": values, "type": "stringOptions"}
 
 
+_cache: dict[int, tuple[float, dict]] = {}
+
+
 @router.get("/langfuse")
 def langfuse(days: int = 7):
-    """Cost, tokens, latency, feedback and errors from Langfuse's Metrics API, plus the latest traces."""
+    """Cost, tokens, latency and errors from Langfuse's Metrics API.
+
+    The queries run in parallel and the result is cached for a minute: each call takes ~1 s, and the
+    dashboard doesn't need second-by-second numbers.
+    """
     if not os.getenv("LANGFUSE_SECRET_KEY"):
         return {"enabled": False}
+    cached = _cache.get(days)
+    if cached and time.monotonic() - cached[0] < CACHE_SECONDS:
+        return cached[1]
     from langfuse import get_client
 
     client = get_client()
@@ -119,7 +117,8 @@ def langfuse(days: int = 7):
         }
         if granularity:
             q["timeDimension"] = {"granularity": granularity}
-        return client.api.metrics.metrics(query=json.dumps(q)).data
+        # Without a timeout a slow Langfuse hangs the request (and the dashboard waiting on it)
+        return client.api.metrics.metrics(query=json.dumps(q), request_options=LANGFUSE_LIMITS).data
 
     llm_calls = [any_of("type", ["GENERATION"])]
     usage = [("totalCost", "sum"), ("inputTokens", "sum"), ("outputTokens", "sum"), ("count", "count")]
@@ -135,32 +134,68 @@ def langfuse(days: int = 7):
         "steps": lambda: query(
             "observations", [("latency", "p50"), ("latency", "p95"), ("count", "count")], ["name"], [any_of("name", AGENT_STEPS)]
         ),
-        "feedback": lambda: query("scores-boolean", [("value", "avg"), ("count", "count")], filters=[any_of("name", ["user_feedback"])]),
         "errors": lambda: query("observations", [("count", "count")], ["name"], [any_of("level", ["ERROR"])]),
     }
-    result = {"enabled": True, "days": days}
-    for key, run in sections.items():
-        try:
-            result[key] = run()
-        except Exception as e:  # one failing query shouldn't hide the rest
-            result[key] = {"error": str(e)[:200]}
 
-    base = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com").rstrip("/")
-    try:
-        traces = client.api.trace.list(limit=50, name="stylist-agent", fields="core,metrics").data
-        result["traces"] = [
-            {
-                "timestamp": t.timestamp.isoformat(),
-                "latency": t.latency,
-                "cost": t.total_cost,
-                "session_id": t.session_id,
-                "url": base + t.html_path,
-            }
-            for t in traces
-            if t.environment != "eval"
-        ][:20]
-    except Exception as e:
-        result["traces"] = {"error": str(e)[:200]}
+    def safe(run):
+        try:
+            return run()
+        except Exception as e:  # one failing query shouldn't hide the rest
+            return {"error": describe(e)}
+
+    with ThreadPoolExecutor(len(sections)) as pool:
+        results = dict(zip(sections, pool.map(safe, sections.values())))
+    result = {"enabled": True, "days": days} | results
+    _cache[days] = (time.monotonic(), result)
+    return result
+
+
+_requests_cache: dict[int, tuple[float, dict]] = {}
+
+
+@router.get("/requests")
+def requests(limit: int = 30):
+    """Latest answered questions: time, feature (route), latency and vote from our events table,
+    tokens and cost per request from Langfuse's observations endpoint (one call, grouped by trace)."""
+    cached = _requests_cache.get(limit)
+    if cached and time.monotonic() - cached[0] < CACHE_SECONDS:
+        return cached[1]
+    events = rows(
+        "SELECT created_at, route, fallback, latency_ms, vote, trace_id FROM events ORDER BY created_at DESC LIMIT %s",
+        (limit,),
+    )
+    result = {"requests": events, "langfuse": "off"}
+    if events and os.getenv("LANGFUSE_SECRET_KEY"):
+        from langfuse import get_client
+
+        try:
+            calls = get_client().api.observations.get_many(
+                type="GENERATION",
+                fields="core,usage,model",
+                from_start_time=min(e["created_at"] for e in events) - timedelta(minutes=1),
+                limit=1000,
+                request_options=LANGFUSE_LIMITS,
+            ).data
+            per_trace = defaultdict(lambda: {"tokens_in": 0, "tokens_out": 0, "cost": 0.0, "llm_calls": 0, "models": set()})
+            for c in calls:
+                t = per_trace[c.trace_id]
+                usage = c.usage_details or {}
+                t["tokens_in"] += usage.get("input", 0)
+                t["tokens_out"] += usage.get("output", 0)
+                t["cost"] += c.total_cost or 0
+                t["llm_calls"] += 1
+                if c.model:
+                    t["models"].add(c.model)
+            for e in events:
+                t = per_trace.get(e["trace_id"])
+                if t:
+                    e.update(t, models=sorted(t["models"]))
+            result["langfuse"] = "ok"
+        except Exception as e:  # Langfuse slow or down: still show our own numbers
+            result["langfuse"] = f"error: {describe(e)}"
+    for e in events:
+        e.pop("trace_id")
+    _requests_cache[limit] = (time.monotonic(), result)
     return result
 
 

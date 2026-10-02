@@ -2,10 +2,10 @@
 import os
 
 import numpy as np
-import psycopg
 from google import genai
 from google.genai import types
-from pgvector.psycopg import register_vector
+
+import db
 
 PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "ai-stylist-proto")
 LOCATION = os.getenv("VERTEX_LOCATION", "europe-west4")
@@ -62,8 +62,7 @@ LIMIT %(k)s
 def search_products(text: str, section=None, color=None, max_price=None, k: int = 8) -> list[dict]:
     """Hard filters from the router, ranked by meaning ("summer wedding" -> linen, light wool)."""
     vec = embed_query(text)
-    with psycopg.connect() as conn:
-        register_vector(conn)
+    with db.connection() as conn:
         rows = conn.execute(
             PRODUCT_SQL, {"vec": vec, "section": section, "color": color, "max_price": max_price, "k": k}
         ).fetchall()
@@ -80,13 +79,13 @@ ORDER BY id
 
 def contact_sources() -> list[dict]:
     """Customer service channels and appointment info, fetched directly rather than searched."""
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         rows = conn.execute(CONTACT_SQL).fetchall()
     return [{"title": t, "heading": h, "url": s, "text": c} for t, h, s, c in rows]
 
 
 def stores_in(country: str) -> list[dict]:
-    with psycopg.connect() as conn:
+    with db.connection() as conn:
         rows = conn.execute(
             "SELECT title, heading, source, content FROM chunks WHERE kind = 'store' AND country ILIKE %s ORDER BY title",
             (country,),
@@ -97,7 +96,6 @@ def stores_in(country: str) -> list[dict]:
 def search(text: str, k: int = 6) -> list[dict]:
     vec = embed_query(text)
     # Connection settings come from PG* env vars (Cloud SQL socket on Cloud Run, proxy locally)
-    with psycopg.connect() as conn:
-        register_vector(conn)
+    with db.connection() as conn:
         rows = conn.execute(HYBRID_SQL, {"vec": vec, "text": text, "k": k}).fetchall()
     return [{"title": t, "heading": h, "url": s, "text": c} for t, h, s, c, _ in rows]

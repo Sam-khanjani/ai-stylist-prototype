@@ -31,6 +31,16 @@
   --text-2xl: 24px;
   --text-2xl--line-height: 32px;
 
+  /* Admin data colors, from a colorblind-checked palette: the three route slots validate together,
+     status colors always come with an icon and a word */
+  --color-route-policy: #2a78d6;
+  --color-route-product: #eb6834;
+  --color-route-other: #1baf7a;
+  --color-accent: #2a78d6;
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-critical: #d03b3b;
+
   --tracking-heading: -0.015em;
   --radius-md: 4px;
   --spacing-header: 52px;
