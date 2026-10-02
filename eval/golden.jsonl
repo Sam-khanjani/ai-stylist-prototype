@@ -8,7 +8,7 @@
 {"id": "g08", "category": "delivery", "question": "How long does delivery to Germany take?", "route": "policy", "fallback": false, "facts": ["1\\s?(–|-|to)\\s?5 business days"], "sources": ["delivery-time-cost"]}
 {"id": "g09", "category": "delivery", "question": "Do you charge for shipping?", "route": "policy", "fallback": false, "facts": ["free"], "sources": ["delivery-time-cost", "store-experience", "secure-payments"]}
 {"id": "g10", "category": "payments", "question": "Which payment methods do you accept?", "route": "policy", "fallback": false, "facts": ["Visa", "PayPal", "Klarna"], "sources": ["secure-payments"]}
-{"id": "g11", "category": "gift cards", "question": "Do your gift cards expire?", "route": "policy", "fallback": false, "facts": ["no expiration|never expire|do not expire|don't expire|doesn't expire|does not expire"], "sources": ["giftcard"]}
+{"id": "g11", "category": "gift cards", "question": "Do your gift cards expire?", "route": "policy", "fallback": false, "facts": ["(no|not have an?) expiration|(never|not|n't) expire"], "sources": ["giftcard"]}
 {"id": "g12", "category": "alterations", "question": "How long do alterations take?", "route": "policy", "fallback": false, "facts": ["30 minutes", "3 days"], "sources": ["faq.html", "alter-your-fit"]}
 {"id": "g13", "category": "alterations", "question": "How much does it cost to shorten my trousers?", "route": "policy", "fallback": false, "facts": ["(€|EUR)\\s?12\\b|\\b12\\s?(€|EUR|euro)"], "sources": ["alter-your-fit"]}
 {"id": "g14", "category": "appointments", "question": "Do I need an appointment to visit a store?", "route": "policy", "fallback": false, "facts": ["walk.?ins?"], "sources": ["faq.html", "perfect-fit-guarantee", "store-experience"]}

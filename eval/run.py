@@ -10,6 +10,7 @@ Needs the same environment as the api (PG* variables for Cloud SQL, Google login
 """
 import argparse
 import json
+import os
 import re
 import statistics
 import sys
@@ -23,6 +24,7 @@ sys.path.insert(0, str(HERE.parent / "api"))
 
 import agent  # noqa: E402
 from langchain_core.messages import HumanMessage, SystemMessage  # noqa: E402
+from langchain_google_genai import ChatGoogleGenerativeAI  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 GOLDEN = HERE / "golden.jsonl"
@@ -95,7 +97,10 @@ def check(g: dict, state: dict, out: dict) -> dict:
 
 
 def judge(g: dict, state: dict, out: dict) -> dict:
-    grader = agent.llm.with_structured_output(Verdict)
+    # Fixed, stronger model so judge scores stay comparable when the app's model changes
+    grader = ChatGoogleGenerativeAI(
+        model=os.getenv("JUDGE_MODEL", "gemini-3.6-flash"), vertexai=True, project=agent.retrieval.PROJECT, location="eu"
+    ).with_structured_output(Verdict)
     verdict = grader.invoke([
         SystemMessage(JUDGE_PROMPT.format(sources=agent.numbered(state["sources"]))),
         HumanMessage(f"Question: {g['question']}\n\nAnswer: {out['reply']}"),
@@ -158,6 +163,7 @@ def summarize(results: list[dict]) -> dict:
     return {
         "questions": len(results),
         "answer_accuracy": mean(r["passed"] for r in results),
+        "errors": sum(bool(r["error"]) for r in results),
         "metrics": {k: mean(r["metrics"].get(k) for r in results) for k in CHECKS + INFO + JUDGE},
         "categories": {c: mean(v) for c, v in sorted(by_category.items())},
         "latency_avg": round(statistics.mean(latencies), 2),
@@ -184,6 +190,8 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
           f"   ({sum(r['passed'] for r in results)}/{summary['questions']} questions passed every check)")
     print(f"latency avg {summary['latency_avg']}s, p95 {summary['latency_p95']}s"
           f"{delta(summary['latency_avg'], base.get('latency_avg'))}")
+    if summary["errors"]:
+        print(f"errors {summary['errors']}: crashed before an answer (quota, network...), so they count as failed but say nothing about quality")
 
     for title, keys in [("Pass/fail checks", CHECKS), ("Ranking", INFO), ("LLM judge (--judge)", JUDGE)]:
         rows = [(k, summary["metrics"][k]) for k in keys if summary["metrics"][k] is not None]
@@ -217,7 +225,8 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
     fixed = [r for r in results if was.get(r["id"]) is False and r["passed"]]
     print(f"\nCompared with baseline {baseline['run']}: {len(regressions)} regression(s), {len(fixed)} fixed")
     for r in regressions:
-        print(f"  REGRESSION {r['id']} {r['question'][:50]}  {failed_checks(r)}")
+        label = "ERROR     " if r["error"] else "REGRESSION"
+        print(f"  {label} {r['id']} {r['question'][:50]}  {failed_checks(r)}")
     for r in fixed:
         print(f"  fixed      {r['id']} {r['question'][:50]}")
     return 1 if regressions else 0

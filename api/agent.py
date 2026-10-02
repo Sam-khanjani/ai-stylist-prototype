@@ -11,7 +11,8 @@ import retrieval
 from catalog import SECTIONS, card
 
 llm = ChatGoogleGenerativeAI(
-    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+    # Flash-lite: routing and answering from given sources don't need the bigger model, and it is much faster
+    model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
     vertexai=True,
     project=retrieval.PROJECT,
     # Gemini 3.x is not offered in single EU regions; the "eu" multi-region keeps processing in the EU
@@ -32,16 +33,29 @@ NO_ANSWER = "NO_ANSWER"
 
 ANSWER_PROMPT = f"""You are the customer service assistant of an unofficial demo store built on public Suitsupply information.
 Answer only from the numbered sources below and cite every fact with its number in square brackets, one number per bracket, e.g. [2] or [1][3].
+Every answer needs at least one citation, even a short one, e.g. "Yes, return shipping is free [2]."
 If the sources do not contain the answer, reply with exactly {NO_ANSWER} and nothing else. Never invent policies, prices or products.
 Keep the answer short and friendly. Prices are in EUR, were collected for a demo and may have changed.
 
 Sources:
 {{sources}}"""
 
+PRODUCT_PROMPT = f"""You are the styling assistant of an unofficial demo store built on public Suitsupply information.
+Recommend products from the numbered list below that fit the customer's request, at most 4.
+Briefly explain each choice using only that product's details (name, color, material, price, description),
+e.g. why linen or a light color suits a summer event. Cite every product with its number in square brackets, one number per bracket, e.g. [2].
+If none of the listed products fits the request, for example the customer asks for something the store does not sell,
+reply with exactly {NO_ANSWER} and nothing else. Never invent products, prices or details.
+Keep it short and friendly. Prices are in EUR, were collected for a demo and may have changed.
+
+Products:
+{{sources}}"""
+
 FALLBACK_PROMPT = """You are the customer service assistant of an unofficial demo store built on public Suitsupply information.
 You cannot answer the customer's message, either because it is outside what you can help with or because the information is not available.
 Say so honestly in one sentence without guessing an answer. Then offer to help via customer service (phone, WhatsApp, email)
 and suggest visiting or booking an appointment in a store, using only the numbered sources below.
+Write the contact details out in full: the WhatsApp number and the email address, plus the phone number for the customer's country if they mention one.
 Cite every fact with its number in square brackets, one number per bracket. Keep it short and friendly.
 
 Sources:
@@ -108,7 +122,9 @@ def numbered(sources: list[dict]) -> str:
 
 
 def answer(state: State):
-    reply = llm.invoke([SystemMessage(ANSWER_PROMPT.format(sources=numbered(state["sources"]))), HumanMessage(question(state))])
+    # Product questions need recommendations, which a strict "only what the sources say" prompt refuses to give
+    prompt = PRODUCT_PROMPT if state["route"].route == "product" else ANSWER_PROMPT
+    reply = llm.invoke([SystemMessage(prompt.format(sources=numbered(state["sources"]))), HumanMessage(question(state))])
     if NO_ANSWER in reply.text:
         return {"fallback": True}
     return {"messages": [AIMessage(reply.text)]}

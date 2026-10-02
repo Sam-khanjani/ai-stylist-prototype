@@ -37,7 +37,13 @@ LIMIT %(k)s
 
 def embed_query(text: str) -> np.ndarray:
     global _client
-    _client = _client or genai.Client(vertexai=True, project=PROJECT, location=LOCATION)
+    # Retries with exponential backoff on 429/5xx; without them a quota hiccup fails the whole answer
+    _client = _client or genai.Client(
+        vertexai=True,
+        project=PROJECT,
+        location=LOCATION,
+        http_options=types.HttpOptions(retry_options=types.HttpRetryOptions(attempts=6)),
+    )
     config = types.EmbedContentConfig(task_type="RETRIEVAL_QUERY", output_dimensionality=DIM)
     values = np.array(_client.models.embed_content(model=EMBED_MODEL, contents=text, config=config).embeddings[0].values)
     return values / np.linalg.norm(values)
