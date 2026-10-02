@@ -2,3 +2,7 @@ requests
 protego
 beautifulsoup4
 markdownify
+google-genai
+psycopg[binary]
+pgvector
+numpy

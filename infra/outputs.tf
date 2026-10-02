@@ -18,6 +18,10 @@ output "deployer_email" {
   value = google_service_account.deployer.email
 }
 
+output "db_connection_name" {
+  value = google_sql_database_instance.main.connection_name
+}
+
 output "catalog_bucket" {
   value = google_storage_bucket.catalog_images.name
 }

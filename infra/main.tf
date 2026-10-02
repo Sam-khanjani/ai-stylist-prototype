@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/google"
       version = ">= 6.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.0"
+    }
   }
 
   # Bucket is created once by hand before init
@@ -32,6 +36,7 @@ locals {
     "secretmanager.googleapis.com",
     "storage.googleapis.com",
     "aiplatform.googleapis.com",
+    "sqladmin.googleapis.com",
   ]
 
   # Cloud Run needs an image on first create; real images are deployed later

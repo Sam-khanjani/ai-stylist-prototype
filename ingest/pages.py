@@ -20,6 +20,7 @@ TODAY = date.today().isoformat()
 
 
 def front_matter(title, url):
+    title = " ".join(title.split())  # some titles contain <br>
     return f"---\ntitle: {title}\nsource: {url}\nfetched: {TODAY}\n---\n\n"
 
 
