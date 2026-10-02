@@ -2,7 +2,7 @@ import os
 import re
 from typing import Literal
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, MessagesState, StateGraph
 from pydantic import BaseModel, Field
@@ -140,18 +140,21 @@ graph = builder.compile()
 # Tracing is optional so the api runs locally without Langfuse keys
 tracing = bool(os.getenv("LANGFUSE_SECRET_KEY"))
 if tracing:
+    from langfuse import Langfuse, get_client
     from langfuse.langchain import CallbackHandler
 
-    langfuse_handler = CallbackHandler()
 
-
-def run_agent(message: str, session_id: str | None = None) -> dict:
-    config = {
+def run_config(session_id: str | None) -> tuple[str | None, dict]:
+    # A handler per request with our own trace id, so feedback can be attached to exactly this trace
+    trace_id = Langfuse.create_trace_id() if tracing else None
+    return trace_id, {
         "run_name": "stylist-agent",
-        "callbacks": [langfuse_handler] if tracing else [],
+        "callbacks": [CallbackHandler(trace_context={"trace_id": trace_id})] if tracing else [],
         "metadata": {"langfuse_session_id": session_id} if session_id else {},
     }
-    state = graph.invoke({"messages": [HumanMessage(message)]}, config=config)
+
+
+def summary(state: dict, trace_id: str | None) -> dict:
     reply = state["messages"][-1].content
     # Only return the sources the answer actually cites
     # Handles [2] as well as [2, 5] in case the model groups citations
@@ -161,14 +164,48 @@ def run_agent(message: str, session_id: str | None = None) -> dict:
         "reply": reply,
         "route": state["route"].route,
         "fallback": state.get("fallback", False),
+        "trace_id": trace_id,
         "sources": [{"n": i, "title": s["title"], "url": s["url"]} for i, s in used],
         # Cards for the products the answer recommends, in source order
         "products": [{"n": i, **s["product"]} for i, s in used if "product" in s],
     }
 
 
+def run_agent(message: str, session_id: str | None = None) -> dict:
+    trace_id, config = run_config(session_id)
+    return summary(graph.invoke({"messages": [HumanMessage(message)]}, config=config), trace_id)
+
+
+def stream_agent(message: str, session_id: str | None = None):
+    """Yield ("token", text) while the reply is written, then ("done", summary)."""
+    trace_id, config = run_config(session_id)
+    held, state = "", None
+    for mode, data in graph.stream({"messages": [HumanMessage(message)]}, config=config, stream_mode=["messages", "values"]):
+        if mode == "values":
+            state = data
+            continue
+        chunk, meta = data
+        node = meta.get("langgraph_node")
+        # Skip the router, and the finished message LangGraph re-emits after the tokens
+        if node not in ("answer", "fallback") or not isinstance(chunk, AIMessageChunk):
+            continue
+        text = chunk.text
+        # Hold back the start of the answer until it can't be the NO_ANSWER marker
+        if node == "answer" and held is not None:
+            held += text
+            if NO_ANSWER.startswith(held.strip()):
+                continue
+            text, held = held, None
+        if text:
+            yield "token", text
+    yield "done", summary(state, trace_id)
+
+
+def score(trace_id: str, value: int, comment: str | None = None):
+    if tracing:
+        get_client().create_score(name="user_feedback", value=value, trace_id=trace_id, data_type="BOOLEAN", comment=comment)
+
+
 def flush():
     if tracing:
-        from langfuse import get_client
-
         get_client().flush()

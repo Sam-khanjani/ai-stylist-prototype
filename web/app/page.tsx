@@ -1,5 +1,5 @@
 import ProductCard from "./components/ProductCard";
-import { getProducts, section } from "@/lib/catalog";
+import { getProducts, section, toCard } from "@/lib/catalog";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const { section: selected } = await searchParams;
@@ -14,7 +14,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       <ul className="grid grid-cols-2 gap-x-2 gap-y-10 md:grid-cols-3 lg:grid-cols-4 lg:gap-y-16">
         {products.map((p) => (
           <li key={p.id}>
-            <ProductCard product={p} />
+            <ProductCard product={toCard(p)} />
           </li>
         ))}
       </ul>

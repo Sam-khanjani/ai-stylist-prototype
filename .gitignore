@@ -252,4 +252,7 @@ npm-debug.log*
 
 # Crawled data stays out of the repo
 data/
+
+# Eval runs (the baseline is committed)
+eval/results/
 .DS_Store

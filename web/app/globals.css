@@ -41,3 +41,22 @@ body {
   color: var(--color-text);
   font-weight: 300;
 }
+
+/* Tailwind resets list and paragraph styles; restore them for assistant replies */
+.chat-markdown p + p,
+.chat-markdown p + ul,
+.chat-markdown ul + p,
+.chat-markdown p + ol {
+  margin-top: 0.75rem;
+}
+.chat-markdown ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.chat-markdown ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.chat-markdown strong {
+  font-weight: 500;
+}

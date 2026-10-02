@@ -6,7 +6,7 @@ export default function Header({ sections }: { sections: string[] }) {
       <Link href="/" className="shrink-0 text-lg font-medium tracking-[0.2em] uppercase">
         Stylist
       </Link>
-      <nav className="flex flex-1 gap-5 overflow-x-auto text-sm whitespace-nowrap [scrollbar-width:none] lg:justify-center">
+      <nav className="flex flex-1 gap-5 overflow-x-auto text-sm whitespace-nowrap [scrollbar-width:none] lg:justify-center-safe">
         {sections.map((s) => (
           <Link key={s} href={`/?section=${s}`} className="capitalize hover:text-text-secondary">
             {s}
