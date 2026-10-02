@@ -3,12 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import ProductCard from "./ProductCard";
 import { formatPrice, type Card } from "@/lib/card";
+import { checkPhoto, preloadPose } from "@/lib/pose";
 import { deletePhoto, tryOn, uploadPhoto } from "@/lib/tryon";
 
 const MAX_PHOTO_MB = 20;
 const HEIGHT = { min: 140, max: 220 };
 const WEIGHT = { min: 40, max: 200 };
-const BUSY_TEXT = { upload: "Uploading your photo…", size: "Estimating your size…", render: "Dressing you in" };
+const BUSY_TEXT = {
+  check: "Checking your photo…",
+  upload: "Uploading your photo…",
+  size: "Estimating your size…",
+  render: "Dressing you in",
+};
 
 // Catalog grid plus the try-on panel: pick a product from the grid, upload a photo in the panel
 export default function TryOn({ products }: { products: Card[] }) {
@@ -71,7 +77,10 @@ export default function TryOn({ products }: { products: Card[] }) {
     setSize(null);
     setResult(null);
     let id: string | null = null;
-    await work("upload", async () => {
+    await work("check", async () => {
+      const reason = await checkPhoto(file);
+      if (reason) throw new Error(reason);
+      setBusy("upload");
       id = await uploadPhoto(file);
       setPhotoId(id);
     });
@@ -133,7 +142,16 @@ export default function TryOn({ products }: { products: Card[] }) {
         {!photo ? (
           <>
             <label className="flex items-start gap-2 text-xs text-text-secondary">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => {
+                  setConsent(e.target.checked);
+                  // Start the photo check download now, so it's ready when the photo is picked
+                  if (e.target.checked) preloadPose().catch(() => {});
+                }}
+                className="mt-0.5"
+              />
               <span>
                 I agree that my photo is used only to suggest a size and create the try-on image. It is stored privately,
                 never shared, and deleted automatically after one day, or right away with “Delete photo”.
@@ -162,7 +180,7 @@ export default function TryOn({ products }: { products: Card[] }) {
                   ? "Enter your height first."
                   : !consent
                     ? "Tick the box above first."
-                    : "Stand straight facing the camera, whole body in frame, fitted clothes, plain background."}
+                    : "Stand straight facing the camera, whole body in frame, fitted clothes, plain background. At least 512 × 1024 px."}
               </span>
             </label>
           </>
@@ -182,11 +200,25 @@ export default function TryOn({ products }: { products: Card[] }) {
               ) : (
                 <span />
               )}
-              <button onClick={removePhoto} disabled={busy === "upload"} className="rounded bg-white/90 px-2 py-1">
+              <button
+                onClick={removePhoto}
+                disabled={busy === "check" || busy === "upload"}
+                className="rounded bg-white/90 px-2 py-1"
+              >
                 Delete photo
               </button>
             </div>
           </div>
+        )}
+
+        {/* Right under the photo, so a rejected photo's reason is seen */}
+        {error && (
+          <p className="flex items-start gap-1.5 text-xs text-text-secondary">
+            <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded-full bg-gray-300 text-[10px]">
+              i
+            </span>
+            {error}
+          </p>
         )}
 
         <div className="flex items-end justify-between gap-3">
@@ -233,15 +265,6 @@ export default function TryOn({ products }: { products: Card[] }) {
         >
           {!photoId ? "Upload a photo first" : !product ? "Pick a product first" : "Try it on"}
         </button>
-
-        {error && (
-          <p className="flex items-center gap-1.5 text-xs text-text-secondary">
-            <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded-full bg-gray-300 text-[10px]">
-              i
-            </span>
-            {error}
-          </p>
-        )}
       </aside>
     </div>
   );
