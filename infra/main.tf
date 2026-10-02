@@ -230,6 +230,12 @@ resource "google_cloud_run_v2_service" "api" {
         value = "/data/raw/products.jsonl"
       }
 
+      # Chat history retention in days; keep in sync with the text in the chat widget
+      env {
+        name  = "CHAT_RETENTION_DAYS"
+        value = "1"
+      }
+
       env {
         name  = "LANGFUSE_BASE_URL"
         value = "https://cloud.langfuse.com"
@@ -289,6 +295,16 @@ resource "google_cloud_run_v2_service" "web" {
         name  = "API_URL"
         value = google_cloud_run_v2_service.api.uri
       }
+
+      env {
+        name = "ADMIN_PASSWORD"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.admin_password.secret_id
+            version = "latest"
+          }
+        }
+      }
     }
   }
 
@@ -296,7 +312,7 @@ resource "google_cloud_run_v2_service" "web" {
     ignore_changes = [template[0].containers[0].image, client, client_version]
   }
 
-  depends_on = [google_project_service.apis]
+  depends_on = [google_project_service.apis, google_secret_manager_secret_iam_member.web_admin_password]
 }
 
 # web is public, api only accepts calls from web

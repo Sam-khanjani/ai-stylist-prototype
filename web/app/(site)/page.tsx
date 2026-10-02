@@ -1,4 +1,4 @@
-import ProductCard from "./components/ProductCard";
+import ProductCard from "../components/ProductCard";
 import { getProducts, section, toCard } from "@/lib/catalog";
 
 export default async function Home({ searchParams }: PageProps<"/">) {

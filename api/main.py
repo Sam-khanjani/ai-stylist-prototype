@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 from contextlib import asynccontextmanager
 from typing import Literal
@@ -7,6 +8,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+import admin
 import history
 from agent import delete_traces, flush, run_agent, score, stream_agent, summarize
 from catalog import products, section_of
@@ -21,6 +23,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Stylist API", lifespan=lifespan)
+app.include_router(admin.router)
 
 
 def visitor(x_visitor_id: str = Header()) -> str:
@@ -68,12 +71,15 @@ def chat_stream(req: ChatRequest, visitor_id: str = Depends(visitor)):
     else:
         conversation_id, memory = history.create_conversation(visitor_id, req.message), ""
     history.add_message(conversation_id, "user", req.message)
+    start = time.monotonic()
 
     def events():
         yield f"event: conversation\ndata: {json.dumps(conversation_id)}\n\n"
         for event, data in stream_agent(req.message, memory, conversation_id):
             if event == "done":
                 history.add_message(conversation_id, "assistant", data["reply"], data)
+                latency_ms = int((time.monotonic() - start) * 1000)
+                history.record_event(data["route"], data["fallback"], latency_ms, data["trace_id"])
             yield f"event: {event}\ndata: {json.dumps(data)}\n\n"
         # Update the memory after the answer is sent, so the customer doesn't wait for it
         history.set_summary(conversation_id, summarize(history.recent_messages(conversation_id)))

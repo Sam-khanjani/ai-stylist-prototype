@@ -232,6 +232,20 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
     return 1 if regressions else 0
 
 
+def save_to_db(run_name: str, summary: dict, results: list[dict]):
+    """Full runs go to the database so the admin dashboard can show the trend."""
+    import history
+    import psycopg
+
+    failures = [{"id": r["id"], "question": r["question"], "checks": failed_checks(r)} for r in results if not r["passed"]]
+    history.init()
+    with psycopg.connect() as conn:
+        conn.execute(
+            "INSERT INTO eval_runs (run, summary, failures) VALUES (%s, %s, %s)",
+            (run_name, json.dumps(summary), json.dumps(failures)),
+        )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", help="comma separated question ids")
@@ -255,6 +269,8 @@ def main():
     run = {"run": run_name, "judge": args.judge, "summary": summary, "results": results}
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / f"{run_name}.json").write_text(json.dumps(run, indent=1, ensure_ascii=False))
+    if not args.only:
+        save_to_db(run_name, summary, results)
 
     # Only compare full runs; a subset would show every skipped question as missing
     baseline = json.loads(BASELINE.read_text()) if BASELINE.exists() and not args.only else None

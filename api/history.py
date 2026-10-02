@@ -1,13 +1,14 @@
-"""Chat history per anonymous visitor, kept for 30 days.
+"""Chat history per anonymous visitor, kept for CHAT_RETENTION_DAYS (default 30).
 
 The visitor id is a random value from a cookie set by the web app; nothing else identifies the person.
 """
 import json
+import os
 import uuid
 
 import psycopg
 
-RETENTION_DAYS = 30
+RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "30"))
 MEMORY_MESSAGES = 10  # the summary the bot remembers is built from this many recent messages
 
 SCHEMA = """
@@ -33,7 +34,30 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS messages_conversation ON messages (conversation_id, id);
+
+-- One row per answered question, without any text or visitor id, so usage trends outlive the chats
+CREATE TABLE IF NOT EXISTS events (
+    id bigserial PRIMARY KEY,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    route text,
+    fallback boolean,
+    latency_ms integer,
+    vote smallint,
+    trace_id text
+);
+CREATE INDEX IF NOT EXISTS events_created ON events (created_at);
+CREATE INDEX IF NOT EXISTS events_trace ON events (trace_id);
+
+-- Summaries of eval/run.py runs, shown in the admin dashboard
+CREATE TABLE IF NOT EXISTS eval_runs (
+    run text PRIMARY KEY,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    summary jsonb NOT NULL,
+    failures jsonb NOT NULL
+);
 """
+
+EVENT_RETENTION_DAYS = 365
 
 # Reads also skip expired rows, so nothing older than the retention period is ever shown
 FRESH = f"updated_at > now() - interval '{RETENTION_DAYS} days'"
@@ -47,7 +71,19 @@ def init():
 def cleanup() -> int:
     """Delete conversations (and their messages) older than the retention period."""
     with psycopg.connect() as conn:
-        return conn.execute(f"DELETE FROM conversations WHERE NOT ({FRESH})").rowcount
+        deleted = conn.execute(f"DELETE FROM conversations WHERE NOT ({FRESH})").rowcount
+        # Events keep only counts; drop their link to the (text-holding) Langfuse trace with the chat
+        conn.execute(f"UPDATE events SET trace_id = NULL WHERE trace_id IS NOT NULL AND created_at < now() - interval '{RETENTION_DAYS} days'")
+        conn.execute(f"DELETE FROM events WHERE created_at < now() - interval '{EVENT_RETENTION_DAYS} days'")
+    return deleted
+
+
+def record_event(route: str, fallback: bool, latency_ms: int, trace_id: str | None):
+    with psycopg.connect() as conn:
+        conn.execute(
+            "INSERT INTO events (route, fallback, latency_ms, trace_id) VALUES (%s, %s, %s, %s)",
+            (route, fallback, latency_ms, trace_id),
+        )
 
 
 def list_conversations(visitor_id: str) -> list[dict]:
@@ -126,6 +162,7 @@ def set_vote(visitor_id: str, trace_id: str, value: int):
             " WHERE m.conversation_id = c.id AND c.visitor_id = %s AND m.trace_id = %s",
             (value, visitor_id, trace_id),
         )
+        conn.execute("UPDATE events SET vote = %s WHERE trace_id = %s", (value, trace_id))
 
 
 def delete_visitor(visitor_id: str) -> list[str]:
