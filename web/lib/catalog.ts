@@ -14,10 +14,26 @@ export type Product = {
   images: string[];
 };
 
-// Output of ingest/crawl.py; will move behind the api service later
+const API_URL = process.env.API_URL;
+// Fallback for local dev without the api: output of ingest/crawl.py
 const CATALOG = path.join(process.cwd(), "..", "data", "raw", "products.jsonl");
 
+// On Cloud Run the api is private, so calls carry an identity token from the metadata server
+async function authHeaders(): Promise<HeadersInit> {
+  if (!process.env.K_SERVICE || !API_URL) return {};
+  const res = await fetch(
+    `http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=${API_URL}`,
+    { headers: { "Metadata-Flavor": "Google" } },
+  );
+  return { Authorization: `Bearer ${await res.text()}` };
+}
+
 export async function getProducts(): Promise<Product[]> {
+  if (API_URL) {
+    const res = await fetch(`${API_URL}/products`, { headers: await authHeaders() });
+    if (!res.ok) throw new Error(`api /products returned ${res.status}`);
+    return res.json();
+  }
   const text = await readFile(CATALOG, "utf-8").catch(() => "");
   return text
     .split("\n")

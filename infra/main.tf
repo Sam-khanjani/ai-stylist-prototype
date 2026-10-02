@@ -24,6 +24,8 @@ locals {
   apis = [
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "sts.googleapis.com",
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
@@ -91,6 +93,24 @@ resource "google_secret_manager_secret_iam_member" "api_llm_key" {
   member    = google_service_account.api.member
 }
 
+resource "google_secret_manager_secret" "langfuse" {
+  for_each  = toset(["langfuse-public-key", "langfuse-secret-key"])
+  secret_id = each.value
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_secret_manager_secret_iam_member" "api_langfuse" {
+  for_each  = google_secret_manager_secret.langfuse
+  secret_id = each.value.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = google_service_account.api.member
+}
+
 # --- Buckets ---
 
 resource "google_storage_bucket" "catalog_images" {
@@ -139,13 +159,58 @@ resource "google_cloud_run_v2_service" "api" {
 
   template {
     service_account = google_service_account.api.email
+    # needed for the bucket volume
+    execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
     scaling {
       max_instance_count = 2
     }
 
+    volumes {
+      name = "data"
+      gcs {
+        bucket    = google_storage_bucket.catalog_images.name
+        read_only = true
+      }
+    }
+
     containers {
       image = local.placeholder_image
+
+      volume_mounts {
+        name       = "data"
+        mount_path = "/data"
+      }
+
+      env {
+        name  = "CATALOG_PATH"
+        value = "/data/raw/products.jsonl"
+      }
+
+      env {
+        name  = "LANGFUSE_BASE_URL"
+        value = "https://cloud.langfuse.com"
+      }
+
+      env {
+        name = "LANGFUSE_PUBLIC_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.langfuse["langfuse-public-key"].secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "LANGFUSE_SECRET_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.langfuse["langfuse-secret-key"].secret_id
+            version = "latest"
+          }
+        }
+      }
     }
   }
 
@@ -153,7 +218,7 @@ resource "google_cloud_run_v2_service" "api" {
     ignore_changes = [template[0].containers[0].image, client, client_version]
   }
 
-  depends_on = [google_project_service.apis]
+  depends_on = [google_project_service.apis, google_secret_manager_secret_iam_member.api_langfuse]
 }
 
 resource "google_cloud_run_v2_service" "web" {
