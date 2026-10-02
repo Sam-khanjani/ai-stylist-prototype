@@ -37,6 +37,7 @@ locals {
     "storage.googleapis.com",
     "aiplatform.googleapis.com",
     "sqladmin.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ]
 
   # Cloud Run needs an image on first create; real images are deployed later

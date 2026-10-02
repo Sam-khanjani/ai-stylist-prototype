@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   description: "Personal styling prototype",
 };
 
+// The header's sections come from the api, which isn't reachable while building
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const sections = [...new Set((await getProducts()).map(section))].sort();
   return (

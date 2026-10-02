@@ -1,5 +1,5 @@
 {
- "run": "eval-20261002-150538",
+ "run": "eval-20261002-154009",
  "judge": true,
  "summary": {
   "questions": 30,
@@ -7,15 +7,15 @@
   "errors": 0,
   "metrics": {
    "route_accuracy": 0.964,
-   "fallback_accuracy": 0.967,
+   "fallback_accuracy": 1.0,
    "retrieval_recall": 0.955,
    "citation_recall": 0.955,
    "citation_validity": 1.0,
-   "fact_recall": 0.96,
+   "fact_recall": 0.987,
    "product_accuracy": 1.0,
    "retrieval_mrr": 0.902,
    "faithfulness": 0.987,
-   "citation_precision": 0.981,
+   "citation_precision": 0.977,
    "answer_relevance": 1.0
   },
   "categories": {
@@ -35,17 +35,17 @@
    "stores": 1.0,
    "sustainability": 0.0
   },
-  "latency_avg": 7.18,
-  "latency_p95": 10.55
+  "latency_avg": 10.06,
+  "latency_p95": 22.86
  },
  "results": [
   {
    "id": "g01",
    "category": "returns",
    "question": "What is your return policy?",
-   "reply": "You can return your items for free within 30 days from the delivery or store purchase date [1][3]. \n\nTo be eligible for a return, items must:\n* Be unworn, unaltered, and free from any signs of wear [1][3]\n* Have the original tags attached [1][3]\n* Have been delivered or ready for pick up less than 30 days ago [1][3]\n* Be returned in the same country of purchase (cross-country returns are not permitted) [1][3]\n\nItems altered using a Size Passport are also eligible for a full refund as long as they meet these criteria [4].",
+   "reply": "You can return your items for free within 30 days from the delivery or store purchase date [1][3]. \n\nTo be eligible for a return, items must:\n* Be unworn, unaltered, and free from any signs of wear [1][3].\n* Have the original tags attached [1][3].\n* Have been delivered or ready for pick up less than 30 days ago [1][3].\n* Be returned in the same country of purchase (cross-country returns are not permitted) [1][3]. \n\nItems altered using Size Passport are also eligible for a full refund as long as they meet these criteria [4].",
    "route": "policy",
-   "latency": 10.55,
+   "latency": 8.78,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -62,63 +62,13 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "e5e8c047ff3de003c2c5f73f191158f0"
+   "trace_id": "f2211671673efe6846c309261d250c56"
   },
   {
    "id": "g02",
    "category": "returns",
    "question": "How long does it take to get my refund once my return arrives at the warehouse?",
-   "reply": "Once your return arrives at the warehouse, return processing takes up to 5 business days, and refunds are issued 1–2 business days after that processing is complete [1].",
-   "route": "policy",
-   "latency": 8.98,
-   "metrics": {
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": true,
-    "retrieval_mrr": 1.0,
-    "citation_recall": true,
-    "citation_validity": true,
-    "fact_recall": 1.0,
-    "product_accuracy": null,
-    "faithfulness": 1.0,
-    "citation_precision": 1.0,
-    "answer_relevance": true,
-    "unsupported_claims": []
-   },
-   "passed": true,
-   "error": null,
-   "trace_id": "a5cf92026f279424f308124abc77a16a"
-  },
-  {
-   "id": "g03",
-   "category": "returns",
-   "question": "Do I have to pay for return shipping?",
-   "reply": "No, return shipping is completely free of charge [1][4].",
-   "route": "policy",
-   "latency": 5.72,
-   "metrics": {
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": true,
-    "retrieval_mrr": 1.0,
-    "citation_recall": true,
-    "citation_validity": true,
-    "fact_recall": 1.0,
-    "product_accuracy": null,
-    "faithfulness": 1.0,
-    "citation_precision": 1.0,
-    "answer_relevance": true,
-    "unsupported_claims": []
-   },
-   "passed": true,
-   "error": null,
-   "trace_id": "cb246958b198c415e7195bc245fc83a0"
-  },
-  {
-   "id": "g04",
-   "category": "returns",
-   "question": "Can someone come and collect my parcel for a return?",
-   "reply": "Yes, you can schedule a pickup on the UPS website using your return label tracking number and following the instructions under \"Need a collection?\" [1].",
+   "reply": "Once your return arrives at the warehouse, return processing takes up to 5 business days, and refunds are then issued 1–2 business days after processing [1].",
    "route": "policy",
    "latency": 6.14,
    "metrics": {
@@ -137,7 +87,57 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "6dae526b6f4629fe4cef5734bca4070b"
+   "trace_id": "68de063021cca7062d26a2acd2bcca90"
+  },
+  {
+   "id": "g03",
+   "category": "returns",
+   "question": "Do I have to pay for return shipping?",
+   "reply": "No, return shipping is completely free of charge [1][4].",
+   "route": "policy",
+   "latency": 3.71,
+   "metrics": {
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": true,
+    "retrieval_mrr": 1.0,
+    "citation_recall": true,
+    "citation_validity": true,
+    "fact_recall": 1.0,
+    "product_accuracy": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "trace_id": "270c76266eadd0097d1e5b248fee3374"
+  },
+  {
+   "id": "g04",
+   "category": "returns",
+   "question": "Can someone come and collect my parcel for a return?",
+   "reply": "Yes, you can schedule a pickup on the UPS website using your return label tracking number and following the instructions under \"Need a collection?\" [1].",
+   "route": "policy",
+   "latency": 3.96,
+   "metrics": {
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": true,
+    "retrieval_mrr": 1.0,
+    "citation_recall": true,
+    "citation_validity": true,
+    "fact_recall": 1.0,
+    "product_accuracy": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "trace_id": "b9404fc71d1d2f7d97ba4c3409bf74ce"
   },
   {
    "id": "g05",
@@ -145,7 +145,7 @@
    "question": "Is there a longer return period around Christmas?",
    "reply": "Yes! For purchases made between November 1st and December 25th, we offer an extended 60-day return period [1].",
    "route": "policy",
-   "latency": 4.96,
+   "latency": 5.27,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -162,15 +162,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "a46b05e8e957b8766317a9e67781d67c"
+   "trace_id": "b48396f534a65ccb31506bc6e8213e77"
   },
   {
    "id": "g06",
    "category": "refunds",
    "question": "I paid with a gift card. How will I be refunded if I return the item?",
-   "reply": "If you paid with a gift card, your refund will be issued to a new gift card [1][2].",
+   "reply": "If you return an item purchased with a gift card, the credit will be issued to a new gift card [1][2].",
    "route": "policy",
-   "latency": 4.73,
+   "latency": 4.35,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -187,15 +187,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "3c261194c36d81eb31399cff6690c207"
+   "trace_id": "4538d32095c33eed28f20850f4efe408"
   },
   {
    "id": "g07",
    "category": "returns",
    "question": "Can I return an online order in a store?",
-   "reply": "Yes, you can return an online order in any store located in the same country where it was purchased [1][5].",
+   "reply": "Yes, you can return an online order in any store in the same country where it was purchased [1].",
    "route": "policy",
-   "latency": 5.92,
+   "latency": 3.8,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -212,7 +212,7 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "d1dd42730402efb07e579cf5b8b233b2"
+   "trace_id": "c229ee2370b9a41a0b35ffb2a6de0d65"
   },
   {
    "id": "g08",
@@ -220,7 +220,7 @@
    "question": "How long does delivery to Germany take?",
    "reply": "Delivery to Germany takes 1-5 business days [1].",
    "route": "policy",
-   "latency": 6.19,
+   "latency": 7.31,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -237,7 +237,7 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "ff4590304a2495b13b04ce74af64d6ff"
+   "trace_id": "c48818345f0a719df8f95bd23391211d"
   },
   {
    "id": "g09",
@@ -245,7 +245,7 @@
    "question": "Do you charge for shipping?",
    "reply": "Suitsupply offers free worldwide shipping [2].",
    "route": "policy",
-   "latency": 5.25,
+   "latency": 3.9,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -262,15 +262,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "a519e5fb47c4ccf5f10c01511057b342"
+   "trace_id": "0a6e8d3d9be967e6bdd054f97baeeb10"
   },
   {
    "id": "g10",
    "category": "payments",
    "question": "Which payment methods do you accept?",
-   "reply": "We accept payment via Visa, Mastercard, American Express, PayPal, Apple Pay, Google Pay, Klarna, and additional local payment methods [1].",
+   "reply": "We accept Visa, Mastercard, American Express, PayPal, Apple Pay, Google Pay, Klarna, and additional local payment methods [1].",
    "route": "policy",
-   "latency": 9.49,
+   "latency": 4.63,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -287,7 +287,7 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "77ca35bc76650b21e4bad429985e98a4"
+   "trace_id": "6f3bc06ebc6021443d9d41fda65554d5"
   },
   {
    "id": "g11",
@@ -295,7 +295,7 @@
    "question": "Do your gift cards expire?",
    "reply": "No, our gift cards do not have an expiration date [1].",
    "route": "policy",
-   "latency": 4.91,
+   "latency": 3.89,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -312,15 +312,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "a20e22dadffa9aa7cd57d71f1804825d"
+   "trace_id": "498f210edb4f2b5f1874bec748d8fb47"
   },
   {
    "id": "g12",
    "category": "alterations",
    "question": "How long do alterations take?",
-   "reply": "Alterations typically take anywhere from 30 minutes to 3 days, done by our expert in-store tailors [1].",
+   "reply": "Alterations generally take anywhere from 30 minutes to 3 days, done by our expert in-store tailors [1]. Certain alterations, such as taking in/let out side seams, shortening/lengthening sleeves, or a square back neck, take 2 to 3 days [2].",
    "route": "policy",
-   "latency": 5.44,
+   "latency": 6.16,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -337,15 +337,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "071a7d34e417f0a3db13e6ef26fc7e8f"
+   "trace_id": "0cbceab3ed9c19cf63a6eea302183d14"
   },
   {
    "id": "g13",
    "category": "alterations",
    "question": "How much does it cost to shorten my trousers?",
-   "reply": "It costs €12 to shorten or lengthen trousers [1].",
+   "reply": "Shortening trousers costs €12 [1].",
    "route": "policy",
-   "latency": 6.24,
+   "latency": 6.37,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -362,15 +362,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "c4cf97d9fdf2c9e216c92a8508a32e4f"
+   "trace_id": "efbb9dec74b2bfcb5808d748bdfa6166"
   },
   {
    "id": "g14",
    "category": "appointments",
    "question": "Do I need an appointment to visit a store?",
-   "reply": "While walk-ins are always welcome, we do encourage you to make an appointment so you have minimal wait time and a dedicated associate available to help you [1][3].",
+   "reply": "While walk-ins are always welcome, we do encourage you to make an appointment to ensure minimal wait time and that a dedicated associate is available to help you [1][3].",
    "route": "policy",
-   "latency": 5.22,
+   "latency": 5.03,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -387,15 +387,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "b0db7245bf5cc1a1d966e2249534320f"
+   "trace_id": "d99fe58b64acd65adfd14f3390d11be3"
   },
   {
    "id": "g15",
    "category": "sizing",
    "question": "What is Size Passport?",
-   "reply": "Size Passport is a tool that saves your measurements, allowing you to order products in the best-fitting size and ensure a perfect fit [1][2].",
+   "reply": "Size Passport is a helpful tool that saves your measurements so you can order products in the best-fitting size [1][2]. It allows eligible pieces to be tailored to your fit before they arrive [5].",
    "route": "policy",
-   "latency": 6.05,
+   "latency": 5.52,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -412,15 +412,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "39ba7ab7bf3e8108520dd4bff131ae67"
+   "trace_id": "ec86c72f555b87235257cc952024a567"
   },
   {
    "id": "g16",
    "category": "custom made",
    "question": "How long does it take to receive a Custom Made suit?",
-   "reply": "A Custom Made suit typically takes 3-4 weeks to be delivered [1][2][4][5].",
+   "reply": "It typically takes 3-4 weeks to get your Custom Made suit designed, crafted, and delivered [1].",
    "route": "policy",
-   "latency": 5.76,
+   "latency": 10.52,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -437,7 +437,7 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "ab03a28d7bd1b2caa21afe6e18e9342c"
+   "trace_id": "ee06c37cf6bfd8d4d2bfe9f3d84e7704"
   },
   {
    "id": "g17",
@@ -445,7 +445,7 @@
    "question": "What is the customer service phone number in the Netherlands?",
    "reply": "The customer service phone number for the Netherlands is 0800 020 6227 [1][2].",
    "route": "policy",
-   "latency": 5.84,
+   "latency": 5.65,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -462,7 +462,7 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "4677969fce8a83d04f3ab839f8f9aa56"
+   "trace_id": "e9ee50a86f88c7930c759b56cf7bbfcb"
   },
   {
    "id": "g18",
@@ -470,7 +470,7 @@
    "question": "Can I reach customer service on WhatsApp?",
    "reply": "Yes, you can reach customer service via WhatsApp at +31 655 110 516, and it is free [2][3]!",
    "route": "policy",
-   "latency": 5.78,
+   "latency": 5.2,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -487,40 +487,40 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "6e7308cea1668fe63afc0efd34ab67d8"
+   "trace_id": "b5c54a89b491e1ccaef51d12c507fd6c"
   },
   {
    "id": "g19",
    "category": "sustainability",
    "question": "Which natural fibers do you use in your products?",
-   "reply": "I am sorry, but I do not have the information to answer your question [1]. \n\nPlease feel free to reach out to our customer service via email at service@suitsupply.com, via WhatsApp at +31 655 110 516 [1], or by phone [2, 3, 4, 5, 6]. \n\nYou are also welcome to visit a store or book an appointment in-store [10].",
+   "reply": "We use several natural fibers across our collection! For example, we offer products made with pure wool [1], linen silk wool cotton blends [2], pure linen [3, 4, 5, 6, 7], and wool silk linen blends [8].",
    "route": "product",
-   "latency": 10.0,
+   "latency": 28.98,
    "metrics": {
     "route_accuracy": false,
-    "fallback_accuracy": false,
+    "fallback_accuracy": true,
     "retrieval_recall": false,
     "retrieval_mrr": 0.0,
     "citation_recall": false,
     "citation_validity": true,
-    "fact_recall": 0.0,
+    "fact_recall": 0.6666666666666666,
     "product_accuracy": null,
     "faithfulness": 1.0,
-    "citation_precision": 0.875,
+    "citation_precision": 1.0,
     "answer_relevance": true,
     "unsupported_claims": []
    },
    "passed": false,
    "error": null,
-   "trace_id": "fda5d573862395237705017670f6af8d"
+   "trace_id": "43c23518e9537fb18b4f9b7a1a265b76"
   },
   {
    "id": "g20",
    "category": "stores",
    "question": "What time does the Amsterdam store open on Sunday?",
-   "reply": "On Sundays, the Amsterdam store opens at 11:00 [1].",
+   "reply": "The Sunday opening hours for the Amsterdam store are 11:00 - 18:00 [1].",
    "route": "policy",
-   "latency": 12.21,
+   "latency": 10.03,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -537,15 +537,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "f6df7b326c9558f17bd96a12cc7264da"
+   "trace_id": "985fb9f5439953445a5bd8b422e53019"
   },
   {
    "id": "g21",
    "category": "stores",
    "question": "Where is your store in Rotterdam?",
-   "reply": "Our Suitsupply store in Rotterdam is located at Rodezand 9-13, 3011 AM Rotterdam [1].",
+   "reply": "Our store in Rotterdam is located at Rodezand 9-13, 3011 AM Rotterdam [1].",
    "route": "policy",
-   "latency": 6.38,
+   "latency": 4.63,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -562,15 +562,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "56c5c2066f62db3ca8b8584fad175541"
+   "trace_id": "832d1430e01f94fbb7cdc41b8040a7a4"
   },
   {
    "id": "g22",
    "category": "stores",
    "question": "Which stores do you have in Belgium?",
-   "reply": "We have three stores in Belgium: Antwerpen, Brussel, and Hasselt [1][2][3].",
+   "reply": "We have three stores in Belgium:\n- Antwerpen, located at Frankrijklei 123A, 2000 Antwerpen [1]\n- Brussel, located at Marnixlaan 23, 1000 Brussel [2]\n- Hasselt, located at Kapelstraat 44, 3500 Hasselt [3]",
    "route": "policy",
-   "latency": 5.42,
+   "latency": 9.7,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -587,15 +587,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "c0ff45325d9649372addee084bb6d593"
+   "trace_id": "30fb133d0a35322dd1c9fbfd87e88351"
   },
   {
    "id": "g23",
    "category": "products",
    "question": "Show me a navy suit under 700 euros",
-   "reply": "Here are a few navy suits under 700 euros that fit your request:\n\n* **Tailored Fit Milano Suit** [1]: A navy herringbone suit in pure linen for EUR 599, featuring a tailored fit with a padded shoulder and wide-leg straight trousers.\n* **Tailored Fit Havana Suit** [2]: A navy suit in wrinkle-free 4-ply wool for EUR 628, cut to a tailored fit with a slim chest and waist, natural shoulder, and flat-front trousers.\n* **Tailored Fit Havana Tuxedo** [3]: A navy tuxedo in pure S110's wool for EUR 598, featuring a tailored fit with a satin peak lapel and flat-front trousers with side-adjusters.",
+   "reply": "Hello! Here are a few great navy suit options under 700 EUR that fit your request:\n\n* **Tailored Fit Milano Suit** [1]: A navy herringbone suit in pure linen for EUR 599, featuring a tailored fit with a padded shoulder and wide-leg straight trousers. The pure linen fabric and lighter feel make it a wonderful choice.\n* **Tailored Fit Havana Suit** [2]: Available for EUR 628, this navy suit is crafted from wrinkle-free 4-ply wool. It is cut to a tailored fit with a slim chest and waist, natural shoulder, and wide notch lapel, paired with sleek flat-front trousers.\n* **Tailored Fit Havana Tuxedo** [3]: Priced at EUR 598, this navy tuxedo is cut from pure S110's wool with a tailored fit, natural shoulder, and satin peak lapel, paired with flat-front trousers featuring side-adjusters.",
    "route": "product",
-   "latency": 7.99,
+   "latency": 48.64,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -605,22 +605,24 @@
     "citation_validity": true,
     "fact_recall": null,
     "product_accuracy": true,
-    "faithfulness": 1.0,
+    "faithfulness": 0.8,
     "citation_precision": 1.0,
     "answer_relevance": true,
-    "unsupported_claims": []
+    "unsupported_claims": [
+     "The pure linen fabric and lighter feel make the Tailored Fit Milano Suit a wonderful choice."
+    ]
    },
    "passed": true,
    "error": null,
-   "trace_id": "bea4e7623f73141ab4c652acaa0ce6e2"
+   "trace_id": "19df9e78364f466209d93a34d8fa8527"
   },
   {
    "id": "g24",
    "category": "products",
    "question": "I'm looking for brown shoes",
-   "reply": "Here are a few brown shoe options for you:\n\n* **Oxford** [1]: These brown, Italian-made Oxford shoes are crafted in a durable Blake stitch from supple Italian calf suede, and feature a fully leather sole and lining (EUR 279).\n* **Derby** [2]: This brown derby is made in Italy from smooth calf leather, blake-constructed for a lean profile, and finished with a leather sole (EUR 279).\n* **Oxford** [3]: This dark brown Oxford is crafted in Portugal from calfskin leather with a burnished cap toe, blake-stitched construction, and a leather sole for a refined, closed-lacing finish (EUR 229).\n* **Penny Loafer** [4]: This dark brown penny loafer is made in Portugal from suede, blake-stitched for a slim profile, and finished with a leather sole (EUR 229).",
+   "reply": "Here are a few great brown shoe options from our collection:\n\n* **Oxford** [1]: These brown, Italian-made Oxford shoes are crafted in a durable Blake stitch from supple Italian calf suede, and feature a fully leather sole and lining (EUR 279).\n* **Derby** [2]: This brown derby is made in Italy from smooth calf leather, blake-constructed for a lean profile, and finished with a leather sole (EUR 279).\n* **Oxford** [3]: This dark brown Oxford is crafted in Portugal from calfskin leather with a burnished cap toe, blake-stitched construction, and a leather sole for a refined, closed-lacing finish (EUR 229).\n* **Penny Loafer** [5]: Crafted in Portugal from smooth calf leather, this dark brown penny loafer is blake-stitched to a leather sole, with a clean apron toe and slip-on silhouette for easy wear (EUR 229). \n\nLet me know which pair catches your eye!",
    "route": "product",
-   "latency": 8.04,
+   "latency": 7.78,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -637,15 +639,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "24b81074af0b1ab3b3a817b8a6c62e36"
+   "trace_id": "7afd1a2a352c41c987271b4569711652"
   },
   {
    "id": "g25",
    "category": "products",
    "question": "Do you have white shirts?",
-   "reply": "We have a great selection of white shirts for you! Here are a few options:\n\n* **Tailored Fit Classic Collar Shirt (Cotton Silk)** [1]: A white shirt tailored to a relaxed fit, featuring a classic collar, single cuff, and French placket, priced at EUR 199.\n* **Tailored Fit Classic Collar Shirt (Pure Cotton)** [2]: A white striped shirt tailored to a formal fit with a classic collar, single cuff, and French placket, priced at EUR 89.\n* **Tailored Fit Widespread Collar Shirt** [3]: A white shirt tailored to a formal tailored fit featuring a high widespread collar, single cuffs, and a French placket, priced at EUR 149.\n* **Relaxed Fit Shirt** [4]: A white shirt tailored to an overshirt fit in pure linen, featuring a classic widespread collar, single cuff, and French placket, priced at EUR 119.",
+   "reply": "Yes, we have several white shirts available! Here are a few options you might like:\n\n* **[1] Tailored Fit Classic Collar Shirt**: A white shirt in a luxurious cotton silk blend, priced at EUR 199. It features a relaxed fit, classic collar, single cuff, and French placket.\n* **[2] Tailored Fit Classic Collar Shirt**: A white striped shirt made of pure cotton, priced at EUR 89. It is tailored to a formal fit with a classic collar, single cuff, and French placket.\n* **[3] Tailored Fit Widespread Collar Shirt**: A white formal shirt in Egyptian cotton, priced at EUR 149. It has a formal tailored fit, high widespread collar, single cuffs, and a French placket.\n* **[5] Tailored Fit Cutaway Collar Shirt**: A white formal shirt crafted from Egyptian cotton, priced at EUR 119. It features a curved cutaway collar, single cuff, and French placket, tailored for a precise, sleek, and professional silhouette.",
    "route": "product",
-   "latency": 8.0,
+   "latency": 14.37,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -655,22 +657,24 @@
     "citation_validity": true,
     "fact_recall": null,
     "product_accuracy": true,
-    "faithfulness": 1.0,
-    "citation_precision": 1.0,
+    "faithfulness": 0.8,
+    "citation_precision": 0.75,
     "answer_relevance": true,
-    "unsupported_claims": []
+    "unsupported_claims": [
+     "The Tailored Fit Classic Collar Shirt is a white shirt in a luxurious cotton silk blend priced at EUR 199, featuring a relaxed fit, classic collar, single cuff, and French placket."
+    ]
    },
    "passed": true,
    "error": null,
-   "trace_id": "2ada840f829941e752a90a4d6b88ad28"
+   "trace_id": "5192b7deddf4e451985ca17211a73426"
   },
   {
    "id": "g26",
    "category": "products",
    "question": "I need a warm winter coat under 500 euro",
-   "reply": "I would be happy to help you find a warm winter coat! Here are a few great options under 500 EUR:\n\n* **Long Down Jacket** [1]: Perfect for cold days, this sleek black padded coat is made from water-repellent wool for EUR 499, featuring a mid-thigh length, drawstring hood, and convenient pockets to keep you warm.\n* **Overcoat** [2]: Priced at EUR 399, this mid green overcoat is crafted from pure wool and cuts a clean, structured silhouette shaped through the chest and waist.\n* **Overcoat** [4]: This light brown overcoat costs EUR 399 and features a clean, elongated silhouette in pure wool with a lightly textured melange weave, peak lapel, and single-button fastening.\n* **Relaxed Raglan Overcoat** [5]: Made from pure wool for EUR 449, this knee-length black overcoat offers a refined touch with single-breasted closure, raglan sleeves, and a back inverted box pleat. \n\nLet me know which one catches your eye!",
+   "reply": "Here are a few warm winter coats under EUR 500 that will keep you cozy:\n\n* **Long Down Jacket**: This sleek black padded coat is made of water-repellent wool, priced at EUR 499 [1]. It features a mid-thigh length, drawstring hood, and double-ended zipper, making it perfect for cold days [1].\n* **Overcoat (Mid Green)**: Crafted from pure wool for EUR 399 [2], this mid green overcoat cuts a clean, structured silhouette shaped through the chest and waist [2].\n* **Overcoat (Light Brown)**: Priced at EUR 399 [3], this light brown pure wool overcoat features a clean, elongated silhouette with a relaxed chest, straight body, and a lightly textured melange weave [3].\n* **Relaxed Raglan Overcoat**: This knee-length black coat made of pure wool costs EUR 449 [5] and features single-breasted closure with hidden buttons, raglan sleeves, and a back inverted box pleat [5].\n\nLet me know if you would like to try any of these!",
    "route": "product",
-   "latency": 8.22,
+   "latency": 18.29,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -687,15 +691,15 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "83bca6b60ba9c9a9b7a5a9414f63d8aa"
+   "trace_id": "c51baf5ec70e72e25dd1b7d810e5c408"
   },
   {
    "id": "g27",
    "category": "products",
    "question": "What would you recommend to wear to a summer wedding?",
-   "reply": "For a summer wedding, you'll want something light and breathable. Here are some great options:\n\n* The **Tailored Fit Havana Suit** in sand, made from pure linen for EUR 599 [1], offers a sharp look and keeps you cool in the warm weather.\n* The **Tailored Fit Havana Suit** in light blue, crafted from a wool silk linen blend for EUR 649 [4], provides a refined, clean finish for a summer celebration. \n* The **Tailored Fit Havana Suit** in mid green, also in a wool silk linen blend for EUR 649 [5], features a natural shoulder and a slim silhouette perfect for the season.",
+   "reply": "For a summer wedding, you'll want something light and breathable. Here are some great options:\n\n* The **Tailored Fit Havana Suit** in sand [1] is crafted from pure linen, making it a fantastic choice to keep you cool and stylish in the warm weather.\n* The **Tailored Fit Havana Suit** in light blue [4] combines wool, silk, and linen for a refined look and comfortable wear.\n* The **Tailored Fit Havana Suit** in mid green [5] also features a wool, silk, and linen blend with a natural shoulder for a relaxed yet sharp summer silhouette. \n\nEnjoy the celebration!",
    "route": "product",
-   "latency": 11.06,
+   "latency": 15.36,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -705,25 +709,22 @@
     "citation_validity": true,
     "fact_recall": null,
     "product_accuracy": true,
-    "faithfulness": 0.75,
-    "citation_precision": 0.8571428571428571,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
     "answer_relevance": true,
-    "unsupported_claims": [
-     "For a summer wedding, you'll want something light and breathable.",
-     "The Tailored Fit Havana Suit in sand keeps you cool in warm weather."
-    ]
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
-   "trace_id": "8db75f52ec3f1a803da92feab669f5c2"
+   "trace_id": "add007f1f204e146779344f20d74e984"
   },
   {
    "id": "g28",
    "category": "out of scope",
    "question": "What's the weather going to be in Paris tomorrow?",
-   "reply": "I'm sorry, but I cannot answer that question as it is outside what I can help with [1]. \n\nIf you need assistance, please feel free to reach out to our customer service by email at service@suitsupply.com, via WhatsApp at +31 655 110 516 [1], or by phone [2]. We also suggest visiting or booking an appointment in a store [10], where walk-ins are always welcome or you can book ahead to ensure a dedicated associate is available [7].",
+   "reply": "I cannot answer your question because it is outside of what I can help with [1]. I would be happy to help you via customer service at email service@suitsupply.com, WhatsApp +31 655 110 516, or phone (for example, in France you can reach customer service at 0800 945 787), and you are also welcome to visit or book an appointment in a store [1, 2, 7, 10].",
    "route": "other",
-   "latency": 8.9,
+   "latency": 10.83,
    "metrics": {
     "route_accuracy": true,
     "fallback_accuracy": true,
@@ -733,49 +734,22 @@
     "citation_validity": true,
     "fact_recall": 1.0,
     "product_accuracy": null,
-    "faithfulness": 0.8571428571428571,
-    "citation_precision": 0.8571428571428571,
-    "answer_relevance": true,
-    "unsupported_claims": [
-     "The assistant cannot answer the question about the weather in Paris because it is outside what it can help with."
-    ]
-   },
-   "passed": true,
-   "error": null,
-   "trace_id": "fa8f3169e525f52df13c1d3a441be0ea"
-  },
-  {
-   "id": "g29",
-   "category": "out of scope",
-   "question": "Where is my order #12345?",
-   "reply": "I am sorry, but I do not have the information available to answer that question [1]. \n\nPlease feel free to reach out to our customer service team via phone, WhatsApp at +31 655 110 516, or email at service@suitsupply.com [1, 9]. We also suggest visiting or booking an appointment in a store for further assistance [7, 8, 10].",
-   "route": "other",
-   "latency": 9.05,
-   "metrics": {
-    "route_accuracy": null,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": 1.0,
-    "product_accuracy": null,
     "faithfulness": 1.0,
-    "citation_precision": 0.8333333333333334,
+    "citation_precision": 0.5555555555555556,
     "answer_relevance": true,
     "unsupported_claims": []
    },
    "passed": true,
    "error": null,
-   "trace_id": "5c2f0a9946bb71cbe7aadb64c07ad755"
+   "trace_id": "817d28f566bbed8f47939e89a5807e50"
   },
   {
-   "id": "g30",
-   "category": "no answer",
-   "question": "Do you sell women's dresses?",
-   "reply": "I'm sorry, but I don't have that information available to answer your question. \n\nIf you need assistance, please feel free to contact our customer service by phone, by WhatsApp at +31 655 110 516, or by email at service@suitsupply.com [1], [9]. We also warmly invite you to visit or book an appointment at one of our stores [10]!",
+   "id": "g29",
+   "category": "out of scope",
+   "question": "Where is my order #12345?",
+   "reply": "I am unable to answer that question based on the information available [1]. Please feel free to reach out to our customer service team via phone, WhatsApp at +31 655 110 516, or email at service@suitsupply.com, and we would be happy to help you [1, 9]. You are also welcome to visit or book an appointment at a store near you [7, 10].",
    "route": "other",
-   "latency": 6.87,
+   "latency": 22.86,
    "metrics": {
     "route_accuracy": null,
     "fallback_accuracy": true,
@@ -792,7 +766,32 @@
    },
    "passed": true,
    "error": null,
-   "trace_id": "de7c691575cbfd4b70227dead94a7f26"
+   "trace_id": "4c61ea2e7642a8036ebf1af72a11d8ec"
+  },
+  {
+   "id": "g30",
+   "category": "no answer",
+   "question": "Do you sell women's dresses?",
+   "reply": "I'm sorry, but I don't have that information available to answer your question. \n\nWe would be happy to help you via customer service through WhatsApp at +31 655 110 516 [1], by email at service@suitsupply.com [1], or by phone, and we also suggest visiting or booking an appointment in a store [10].",
+   "route": "other",
+   "latency": 10.21,
+   "metrics": {
+    "route_accuracy": null,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": 1.0,
+    "product_accuracy": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "trace_id": "51f7c5a54c3f560da8ff7ddde9c4229b"
   }
  ]
 }

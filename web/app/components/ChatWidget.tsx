@@ -17,6 +17,29 @@ type Message = {
   vote?: 0 | 1;
 };
 
+type Conversation = { id: string; title: string; updated_at: string };
+
+// Shape stored by the api's history
+type StoredMessage = {
+  role: Message["role"];
+  text: string;
+  sources: Source[] | null;
+  products: Message["products"] | null;
+  fallback: boolean | null;
+  trace_id: string | null;
+  vote: 0 | 1 | null;
+};
+
+const fromStored = (m: StoredMessage): Message => ({
+  role: m.role,
+  text: m.text,
+  sources: m.sources ?? undefined,
+  products: m.products ?? undefined,
+  fallback: m.fallback ?? undefined,
+  traceId: m.trace_id,
+  vote: m.vote ?? undefined,
+});
+
 const SUGGESTIONS = [
   "How can I return a shirt?",
   "Show me a navy suit under €700",
@@ -52,9 +75,33 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[] | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  async function loadConversations() {
+    const res = await fetch("/api/conversations");
+    const list: Conversation[] = res.ok ? await res.json() : [];
+    setConversations(list);
+    return list;
+  }
+
+  async function openConversation(id: string) {
+    const res = await fetch(`/api/conversations/${id}`);
+    if (!res.ok) return;
+    const data: { messages: StoredMessage[] } = await res.json();
+    setConversationId(id);
+    setMessages(data.messages.map(fromStored));
+    setShowHistory(false);
+  }
+
+  // First time the panel opens: continue the most recent chat of this browser
+  useEffect(() => {
+    if (!open || conversations !== null) return;
+    loadConversations().then((list) => list[0] && openConversation(list[0].id));
+  }, [open]);
 
   // Keep the newest text in view while the answer streams in
   useEffect(() => {
@@ -83,7 +130,7 @@ export default function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, session_id: sessionId }),
+        body: JSON.stringify({ message: text, conversation_id: conversationId }),
       });
       if (!res.ok || !res.body) throw new Error(`chat returned ${res.status}`);
 
@@ -100,8 +147,9 @@ export default function ChatWidget() {
         for (const block of blocks) {
           const event = block.match(/^event: (.*)$/m)?.[1];
           const data = JSON.parse(block.match(/^data: (.*)$/m)?.[1] ?? "null");
+          if (event === "conversation") setConversationId(data);
           if (event === "token") updateLast({ text: (reply += data) });
-          if (event === "done")
+          if (event === "done") {
             updateLast({
               text: data.reply,
               sources: data.sources,
@@ -109,6 +157,9 @@ export default function ChatWidget() {
               fallback: data.fallback,
               traceId: data.trace_id,
             });
+            // The stream stays open a moment longer while the api updates its memory; no need to wait for that
+            setBusy(false);
+          }
         }
       }
     } catch {
@@ -116,6 +167,7 @@ export default function ChatWidget() {
     }
     setBusy(false);
     inputRef.current?.focus();
+    loadConversations();
   }
 
   function vote(index: number, value: 0 | 1) {
@@ -131,8 +183,16 @@ export default function ChatWidget() {
 
   function newChat() {
     setMessages([]);
-    setSessionId(crypto.randomUUID());
+    setConversationId(null);
+    setShowHistory(false);
     inputRef.current?.focus();
+  }
+
+  async function deleteAll() {
+    if (!confirm("Delete all your chats? This can't be undone.")) return;
+    await fetch("/api/conversations", { method: "DELETE" });
+    setConversations([]);
+    newChat();
   }
 
   function submit(e: FormEvent) {
@@ -164,7 +224,15 @@ export default function ChatWidget() {
             <p className="text-xs text-text-secondary">Returns, delivery, stores, sizing and products</p>
           </div>
           <div className="flex gap-1">
-            {messages.length > 0 && (
+            {!!conversations?.length && (
+              <button
+                onClick={() => setShowHistory((h) => !h)}
+                className="rounded px-2 py-1 text-xs text-text-secondary hover:bg-surface hover:text-text"
+              >
+                {showHistory ? "Back" : "History"}
+              </button>
+            )}
+            {(messages.length > 0 || showHistory) && (
               <button onClick={newChat} className="rounded px-2 py-1 text-xs text-text-secondary hover:bg-surface hover:text-text">
                 New chat
               </button>
@@ -179,7 +247,29 @@ export default function ChatWidget() {
           </div>
         </header>
 
-        <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
+        {showHistory && (
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <h3 className="text-xs text-text-secondary">Your chats from the last 30 days</h3>
+            <ul className="mt-3 divide-y divide-border">
+              {conversations?.map((c) => (
+                <li key={c.id}>
+                  <button
+                    onClick={() => openConversation(c.id)}
+                    className={`w-full py-3 text-left hover:text-text-secondary ${c.id === conversationId ? "font-medium" : ""}`}
+                  >
+                    <span className="block truncate text-sm">{c.title}</span>
+                    <span className="text-xs text-text-secondary">{new Date(c.updated_at).toLocaleString()}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button onClick={deleteAll} className="mt-6 text-xs text-text-secondary underline hover:text-text">
+              Delete my chats
+            </button>
+          </div>
+        )}
+
+        <div ref={scrollRef} className={`flex-1 space-y-6 overflow-y-auto px-4 py-4 ${showHistory ? "hidden" : ""}`}>
           {messages.length === 0 && (
             <div>
               <p className="text-sm">Hi! How can I help you today?</p>
@@ -278,7 +368,10 @@ export default function ChatWidget() {
             Send
           </button>
         </form>
-        <p className="px-3 pb-2 text-[10px] text-text-secondary">AI answers can be wrong. Unofficial demo, not affiliated with Suitsupply.</p>
+        <p className="px-3 pb-2 text-[10px] leading-4 text-text-secondary">
+          AI answers can be wrong. Chats are saved for 30 days in this browser so you can continue later; delete them
+          anytime under History. Please don&apos;t share personal details. Unofficial demo, not affiliated with Suitsupply.
+        </p>
       </section>
     </>
   );

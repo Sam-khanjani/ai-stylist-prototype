@@ -27,7 +27,16 @@ ROUTER_PROMPT = """Classify the customer's message for a menswear store assistan
 - "other": anything unrelated to the store, its products or its services (weather, general knowledge, other brands, coding),
   and requests the assistant cannot handle such as checking a specific order or account.
 For product questions, also fill in the filters that the customer mentions. Leave the others empty.
-If the customer asks about stores in a whole country, set country to its English name."""
+If the customer asks about stores in a whole country, set country to its English name.
+Always set question to the customer's latest message rewritten as a standalone question, using the conversation
+summary for context (e.g. "and in Rotterdam?" after asking about Amsterdam opening hours -> "What are the opening hours of the Rotterdam store?").
+
+Conversation summary:
+{summary}"""
+
+SUMMARY_PROMPT = """Summarize this conversation between a customer and a menswear store assistant in at most 5 short bullet points:
+what the customer is looking for and the key facts already given (products, stores, countries, policies).
+Leave out personal details such as names, email addresses, phone numbers, addresses or order numbers of the customer."""
 
 NO_ANSWER = "NO_ANSWER"
 
@@ -74,9 +83,11 @@ class Route(BaseModel):
     color: str | None = None
     max_price: float | None = Field(None, description="maximum price in EUR")
     country: str | None = Field(None, description="country name in English, only for questions about stores in a country")
+    question: str = Field("", description="the latest message as a standalone question")
 
 
 class State(MessagesState):
+    summary: str  # memory of the earlier conversation, see summarize()
     route: Route
     sources: list[dict]
     fallback: bool
@@ -86,11 +97,14 @@ router = llm.with_structured_output(Route)
 
 
 def question(state: State) -> str:
-    return state["messages"][-1].content
+    # After routing, use the standalone version so follow-ups like "and in Rotterdam?" can be searched
+    r = state.get("route")
+    return r.question if r and r.question else state["messages"][-1].content
 
 
 def route(state: State):
-    return {"route": router.invoke([SystemMessage(ROUTER_PROMPT), HumanMessage(question(state))])}
+    prompt = ROUTER_PROMPT.format(summary=state.get("summary") or "(new conversation)")
+    return {"route": router.invoke([SystemMessage(prompt), HumanMessage(state["messages"][-1].content)])}
 
 
 def policy_search(state: State):
@@ -170,7 +184,7 @@ def run_config(session_id: str | None) -> tuple[str | None, dict]:
     }
 
 
-def summary(state: dict, trace_id: str | None) -> dict:
+def result(state: dict, trace_id: str | None) -> dict:
     reply = state["messages"][-1].content
     # Only return the sources the answer actually cites
     # Handles [2] as well as [2, 5] in case the model groups citations
@@ -187,16 +201,17 @@ def summary(state: dict, trace_id: str | None) -> dict:
     }
 
 
-def run_agent(message: str, session_id: str | None = None) -> dict:
+def run_agent(message: str, memory: str = "", session_id: str | None = None) -> dict:
     trace_id, config = run_config(session_id)
-    return summary(graph.invoke({"messages": [HumanMessage(message)]}, config=config), trace_id)
+    return result(graph.invoke({"messages": [HumanMessage(message)], "summary": memory}, config=config), trace_id)
 
 
-def stream_agent(message: str, session_id: str | None = None):
-    """Yield ("token", text) while the reply is written, then ("done", summary)."""
+def stream_agent(message: str, memory: str = "", session_id: str | None = None):
+    """Yield ("token", text) while the reply is written, then ("done", result)."""
     trace_id, config = run_config(session_id)
     held, state = "", None
-    for mode, data in graph.stream({"messages": [HumanMessage(message)]}, config=config, stream_mode=["messages", "values"]):
+    inputs = {"messages": [HumanMessage(message)], "summary": memory}
+    for mode, data in graph.stream(inputs, config=config, stream_mode=["messages", "values"]):
         if mode == "values":
             state = data
             continue
@@ -214,7 +229,25 @@ def stream_agent(message: str, session_id: str | None = None):
             text, held = held, None
         if text:
             yield "token", text
-    yield "done", summary(state, trace_id)
+    yield "done", result(state, trace_id)
+
+
+def summarize(messages: list[tuple[str, str]]) -> str:
+    """Condense the recent messages into the short memory used for the next question."""
+    transcript = "\n".join(f"{role}: {text}" for role, text in messages)
+    return llm.invoke([SystemMessage(SUMMARY_PROMPT), HumanMessage(transcript)]).text
+
+
+def delete_traces(trace_ids: list[str]) -> bool:
+    """Best effort: the chats are already gone from our database, a Langfuse outage shouldn't fail the request."""
+    if not tracing or not trace_ids:
+        return True
+    try:
+        get_client().api.trace.delete_multiple(trace_ids=trace_ids)
+        return True
+    except Exception as e:
+        print(f"Could not delete {len(trace_ids)} Langfuse traces: {e!r}")
+        return False
 
 
 def score(trace_id: str, value: int, comment: str | None = None):

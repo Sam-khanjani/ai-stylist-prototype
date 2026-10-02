@@ -122,7 +122,7 @@ def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
     trace_id, config = agent.run_config(session_id=run_name)  # one Langfuse session per eval run
     try:
         state = agent.graph.invoke({"messages": [HumanMessage(g["question"])]}, config=config)
-        out = agent.summary(state, trace_id)
+        out = agent.result(state, trace_id)
         metrics = check(g, state, out) | (judge(g, state, out) if use_judge else {})
         error = None
     except Exception as e:  # a crash is a failed answer, not a failed run
