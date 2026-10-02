@@ -5,7 +5,7 @@ variable "project_id" {
 
 variable "github_repo" {
   type    = string
-  default = "Sam-khanjani/suitsupply-ai-stylist"
+  default = "Sam-khanjani/ai-stylist-prototype"
 }
 
 variable "region" {

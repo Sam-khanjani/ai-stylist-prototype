@@ -18,7 +18,7 @@ from protego import Protego
 
 SITE = "https://suitsupply.com"
 LOCALE = "en-nl"
-UA = "ai-stylist-proto/0.1 (personal non-commercial research; +https://github.com/Sam-khanjani/suitsupply-ai-stylist)"
+UA = "ai-stylist-proto/0.1 (personal non-commercial research; +https://github.com/Sam-khanjani/ai-stylist-prototype)"
 DELAY = 3.0
 IMAGE_DELAY = 1.0
 OUT = Path(__file__).resolve().parent.parent / "data" / "raw"
