@@ -1,4 +1,6 @@
 import { adminApi } from "@/lib/admin";
+import BarChart, { lastDays } from "../BarChart";
+import Stat from "../Stat";
 
 type Day = {
   day: string;
@@ -15,31 +17,23 @@ type Day = {
 const DAYS = 30;
 const pct = (part: number, whole: number) => (whole ? `${Math.round((100 * part) / whole)}%` : "–");
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="rounded-md border border-border p-4">
-      <p className="text-xs text-text-secondary">{label}</p>
-      <p className="mt-1 text-2xl font-medium tracking-heading">{value}</p>
-      {note && <p className="mt-1 text-xs text-text-secondary">{note}</p>}
-    </div>
-  );
-}
-
 export default async function Overview() {
   const rows = await adminApi<Day[]>(`/overview?days=${DAYS}`);
 
-  // Continuous time axis: days without questions show as empty, not skipped
   const byDay = new Map(rows.map((r) => [r.day, r]));
-  const days = Array.from({ length: DAYS }, (_, i) => {
-    const day = new Date(Date.now() - (DAYS - 1 - i) * 86_400_000).toISOString().slice(0, 10);
-    return byDay.get(day) ?? { day, questions: 0, policy: 0, product: 0, other: 0, fallbacks: 0, up: 0, down: 0, avg_latency_ms: null };
+  const bars = lastDays(DAYS).map((day) => {
+    const d = byDay.get(day);
+    return {
+      key: day,
+      value: d?.questions ?? 0,
+      tooltip: [day, `${d?.questions ?? 0} questions`, `${d?.fallbacks ?? 0} fallbacks · 👍 ${d?.up ?? 0} · 👎 ${d?.down ?? 0}`],
+    };
   });
 
   const sum = (k: keyof Day) => rows.reduce((s, r) => s + Number(r[k] ?? 0), 0);
   const total = sum("questions");
   const votes = sum("up") + sum("down");
   const latency = total ? Math.round(rows.reduce((s, r) => s + (r.avg_latency_ms ?? 0) * r.questions, 0) / total) : null;
-  const max = Math.max(1, ...days.map((d) => d.questions));
 
   return (
     <div className="space-y-8">
@@ -59,29 +53,7 @@ export default async function Overview() {
 
       <section>
         <h2 className="text-sm font-medium">Questions per day</h2>
-        <div className="mt-4 flex h-48 items-end gap-0.5 border-b border-border" role="img" aria-label="Questions per day, last 30 days">
-          {days.map((d) => (
-            <div key={d.day} className="group relative flex h-full flex-1 items-end">
-              {/* Bar, with a hover area as tall as the chart so thin bars are easy to hit */}
-              <div
-                className="w-full rounded-t bg-gray-800 group-hover:bg-gray-600"
-                style={{ height: `${(100 * d.questions) / max}%`, minHeight: d.questions ? 2 : 0 }}
-              />
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-44 -translate-x-1/2 rounded-md border border-border bg-background p-2 text-xs shadow-md group-hover:block">
-                <p className="font-medium">{d.day}</p>
-                <p>{d.questions} questions</p>
-                <p className="text-text-secondary">
-                  {d.fallbacks} fallbacks · 👍 {d.up} · 👎 {d.down}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-1 flex justify-between text-xs text-text-secondary">
-          <span>{days[0].day}</span>
-          <span>max {max} / day</span>
-          <span>{days[days.length - 1].day}</span>
-        </div>
+        <BarChart bars={bars} label={`Questions per day, last ${DAYS} days`} />
       </section>
 
       <details>

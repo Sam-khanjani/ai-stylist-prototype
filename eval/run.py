@@ -21,6 +21,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "api"))
+# Separate eval traces from real usage in Langfuse and the admin monitoring
+os.environ.setdefault("LANGFUSE_TRACING_ENVIRONMENT", "eval")
 
 import agent  # noqa: E402
 from langchain_core.messages import HumanMessage, SystemMessage  # noqa: E402

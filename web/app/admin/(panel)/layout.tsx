@@ -5,6 +5,7 @@ export const metadata = { title: "Admin · Stylist", robots: { index: false } };
 
 const TABS = [
   ["/admin", "Overview"],
+  ["/admin/monitoring", "Monitoring"],
   ["/admin/conversations", "Conversations"],
   ["/admin/gaps", "Gaps & 👎"],
   ["/admin/evals", "Evals"],
