@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 import admin
 import history
+import tryon
 from agent import delete_traces, flush, run_agent, score, stream_agent, summarize
 from catalog import products, section_of
 
@@ -120,6 +121,41 @@ def feedback(fb: Feedback, visitor_id: str = Depends(visitor)):
     score(fb.trace_id, fb.value, fb.comment)
     flush()
     return {"ok": True}
+
+
+@app.post("/tryon/photos")
+def new_photo(visitor_id: str = Depends(visitor)):
+    """Signed URL for the browser to upload a try-on photo to the bucket."""
+    return tryon.upload_url(visitor_id)
+
+
+@app.delete("/tryon/photos/{photo_id}")
+def delete_photo(photo_id: uuid.UUID, visitor_id: str = Depends(visitor)):
+    tryon.delete(visitor_id, str(photo_id))
+    return {"deleted": True}
+
+
+class TryOnRequest(BaseModel):
+    photo_id: uuid.UUID
+    product_id: str | None = None  # without a product only the size is suggested
+    height_cm: int = Field(ge=140, le=220)
+    weight_kg: int | None = Field(None, ge=40, le=200)
+
+
+@app.post("/tryon")
+def try_on(req: TryOnRequest, visitor_id: str = Depends(visitor)):
+    image = None
+    if req.product_id:
+        product = next((p for p in products() if p["id"] == req.product_id and p["images"]), None)
+        if not product:
+            raise HTTPException(404, "This product can't be tried on.")
+        try:
+            image = tryon.render(visitor_id, str(req.photo_id), product)
+        except tryon.PhotoMissing:
+            raise HTTPException(404, "Your photo has expired. Please upload it again.")
+        except tryon.Blocked:
+            raise HTTPException(422, "We couldn't create a try-on from this photo. Please try another photo.")
+    return {"size": None, "image": image}  # size estimation comes next
 
 
 @app.post("/maintenance/cleanup")

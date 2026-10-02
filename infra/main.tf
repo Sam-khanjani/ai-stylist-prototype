@@ -143,7 +143,22 @@ resource "google_storage_bucket" "user_photos" {
     }
   }
 
+  # The browser uploads try-on photos directly with a signed URL
+  cors {
+    origin          = concat(google_cloud_run_v2_service.web.urls, ["http://localhost:3000"])
+    method          = ["PUT"]
+    response_header = ["Content-Type", "x-goog-content-length-range"]
+    max_age_seconds = 3600
+  }
+
   depends_on = [google_project_service.apis]
+}
+
+# Cloud Run has no key file, so the api signs upload URLs through the IAM API as itself
+resource "google_service_account_iam_member" "api_signs_urls" {
+  service_account_id = google_service_account.api.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = google_service_account.api.member
 }
 
 resource "google_storage_bucket_iam_member" "api_buckets" {
@@ -228,6 +243,12 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "CATALOG_PATH"
         value = "/data/raw/products.jsonl"
+      }
+
+      # By name, not reference: the bucket's CORS already depends on web, which depends on this service
+      env {
+        name  = "PHOTOS_BUCKET"
+        value = "${var.project_id}-user-photos"
       }
 
       # Chat history retention in days; keep in sync with the text in the chat widget

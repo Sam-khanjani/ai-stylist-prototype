@@ -1,4 +1,4 @@
-import ProductCard from "../components/ProductCard";
+import TryOn from "../components/TryOn";
 import { getProducts, section, toCard } from "@/lib/catalog";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -11,13 +11,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <h1 className="text-2xl font-medium tracking-heading capitalize">{selected ?? "All products"}</h1>
         <span className="text-sm text-text-secondary">{products.length} items</span>
       </div>
-      <ul className="grid grid-cols-2 gap-x-2 gap-y-10 md:grid-cols-3 lg:grid-cols-4 lg:gap-y-16">
-        {products.map((p) => (
-          <li key={p.id}>
-            <ProductCard product={toCard(p)} />
-          </li>
-        ))}
-      </ul>
+      <TryOn products={products.map(toCard)} />
     </div>
   );
 }
