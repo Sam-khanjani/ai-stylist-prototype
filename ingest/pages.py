@@ -64,7 +64,8 @@ def save_contact(home_html):
         f"- {'WhatsApp' if 'whatsapp' in href else 'Phone' if href.startswith('tel:') else 'Email'}: {text}"
         for text, href in lines.items()
     )
-    (KNOWLEDGE / "pages" / "contact.md").write_text(front_matter("Customer service contact", f"{SITE}/{LOCALE}") + md + "\n")
+    # Not "contact.md": the site has its own /contact page that would overwrite it
+    (KNOWLEDGE / "pages" / "footer-contact.md").write_text(front_matter("Customer service contact", f"{SITE}/{LOCALE}") + md + "\n")
 
 
 def save_pages():

@@ -1,7 +1,7 @@
-"""Chunk the knowledge pages and stores, embed them with Vertex AI and load them into pgvector.
+"""Embed the knowledge pages, stores and products with Vertex AI and load them into pgvector.
 
 Connection settings come from the standard PG* env vars (PGHOST, PGUSER, PGPASSWORD, PGDATABASE).
-Every run rebuilds the table, so it is safe to rerun after a new crawl.
+Every run rebuilds the tables, so it is safe to rerun after a new crawl.
 """
 import argparse
 import json
@@ -40,6 +40,16 @@ CREATE TABLE IF NOT EXISTS chunks (
     ) STORED
 );
 CREATE INDEX IF NOT EXISTS chunks_tsv ON chunks USING gin (tsv);
+
+-- Filter columns for exact constraints, data holds the full product for cards
+CREATE TABLE IF NOT EXISTS products (
+    id text PRIMARY KEY,
+    section text NOT NULL,
+    color text,
+    price numeric,
+    data jsonb NOT NULL,
+    embedding vector({DIM}) NOT NULL
+);
 """
 
 
@@ -124,6 +134,24 @@ def store_chunks():
     return chunks
 
 
+def product_docs():
+    docs = []
+    for line in (OUT / "products.jsonl").read_text().splitlines():
+        p = json.loads(line)
+        docs.append({
+            "id": p["id"],
+            "section": p["url"].split("/")[5],  # .../en-nl/men/suits/... -> suits
+            "color": p["color"],
+            "price": p["price"],
+            "data": json.dumps(p),
+            # embed() reads title/heading/content
+            "title": p["name"],
+            "heading": p["category"],
+            "content": f"{p['name']}. Color: {p['color']}. Material: {p['material']}. {p['description']}",
+        })
+    return docs
+
+
 def embed(client, chunk):
     text = f"{chunk['heading']}\n\n{chunk['content']}" if chunk["heading"] else chunk["content"]
     if "embedding-2" in MODEL:
@@ -143,8 +171,9 @@ def main():
     args = ap.parse_args()
 
     chunks = page_chunks() + store_chunks()
+    products = product_docs()
     sizes = [len(c["content"]) for c in chunks]
-    print(f"{len(chunks)} chunks, {min(sizes)}-{max(sizes)} chars, avg {sum(sizes) // len(sizes)}")
+    print(f"{len(chunks)} chunks, {min(sizes)}-{max(sizes)} chars, avg {sum(sizes) // len(sizes)}; {len(products)} products")
     if args.dry_run:
         return
 
@@ -160,19 +189,25 @@ def main():
             location=LOCATION,
             http_options=types.HttpOptions(retry_options=types.HttpRetryOptions(attempts=6)),
         )
-        for i, chunk in enumerate(chunks, 1):
-            chunk["embedding"] = embed(client, chunk)
-            if i % 50 == 0 or i == len(chunks):
-                print(f"embedded {i}/{len(chunks)}")
+        docs = chunks + products
+        for i, doc in enumerate(docs, 1):
+            doc["embedding"] = embed(client, doc)
+            if i % 50 == 0 or i == len(docs):
+                print(f"embedded {i}/{len(docs)}")
 
-        conn.execute("TRUNCATE chunks")
+        conn.execute("TRUNCATE chunks, products")
         with conn.cursor() as cur:
             cur.executemany(
                 "INSERT INTO chunks (id, kind, source, title, heading, country, content, embedding)"
                 " VALUES (%(id)s, %(kind)s, %(source)s, %(title)s, %(heading)s, %(country)s, %(content)s, %(embedding)s)",
                 chunks,
             )
-    print(f"loaded {len(chunks)} chunks into {os.getenv('PGDATABASE', 'postgres')}.chunks")
+            cur.executemany(
+                "INSERT INTO products (id, section, color, price, data, embedding)"
+                " VALUES (%(id)s, %(section)s, %(color)s, %(price)s, %(data)s, %(embedding)s)",
+                products,
+            )
+    print(f"loaded {len(chunks)} chunks and {len(products)} products")
 
 
 if __name__ == "__main__":

@@ -53,3 +53,16 @@ resource "google_secret_manager_secret_version" "db_password" {
   secret      = google_secret_manager_secret.db_password.id
   secret_data = random_password.db.result
 }
+
+# The api connects through the Cloud SQL socket mounted by Cloud Run
+resource "google_project_iam_member" "api_sql" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = google_service_account.api.member
+}
+
+resource "google_secret_manager_secret_iam_member" "api_db_password" {
+  secret_id = google_secret_manager_secret.db_password.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = google_service_account.api.member
+}

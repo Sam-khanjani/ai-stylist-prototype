@@ -3,4 +3,9 @@ uvicorn[standard]
 langgraph
 langchain-core
 langchain
+langchain-google-genai
 langfuse
+google-genai
+psycopg[binary]
+pgvector
+numpy

@@ -1,18 +1,140 @@
 import os
+import re
+from typing import Literal
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, MessagesState, StateGraph
+from pydantic import BaseModel, Field
+
+import retrieval
+from catalog import SECTIONS, card
+
+llm = ChatGoogleGenerativeAI(
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+    vertexai=True,
+    project=retrieval.PROJECT,
+    # Gemini 3.x is not offered in single EU regions; the "eu" multi-region keeps processing in the EU
+    location=os.getenv("GEMINI_LOCATION", "eu"),
+    temperature=0,
+)
+
+ROUTER_PROMPT = """Classify the customer's message for a menswear store assistant.
+- "policy": orders, shipping, delivery, returns, refunds, payments, sizing, alterations, stores, opening hours,
+  services, gift cards or company information.
+- "product": the customer wants product suggestions, prices or details about clothing and accessories.
+- "other": anything unrelated to the store, its products or its services (weather, general knowledge, other brands, coding),
+  and requests the assistant cannot handle such as checking a specific order or account.
+For product questions, also fill in the filters that the customer mentions. Leave the others empty.
+If the customer asks about stores in a whole country, set country to its English name."""
+
+NO_ANSWER = "NO_ANSWER"
+
+ANSWER_PROMPT = f"""You are the customer service assistant of an unofficial demo store built on public Suitsupply information.
+Answer only from the numbered sources below and cite every fact with its number in square brackets, one number per bracket, e.g. [2] or [1][3].
+If the sources do not contain the answer, reply with exactly {NO_ANSWER} and nothing else. Never invent policies, prices or products.
+Keep the answer short and friendly. Prices are in EUR, were collected for a demo and may have changed.
+
+Sources:
+{{sources}}"""
+
+FALLBACK_PROMPT = """You are the customer service assistant of an unofficial demo store built on public Suitsupply information.
+You cannot answer the customer's message, either because it is outside what you can help with or because the information is not available.
+Say so honestly in one sentence without guessing an answer. Then offer to help via customer service (phone, WhatsApp, email)
+and suggest visiting or booking an appointment in a store, using only the numbered sources below.
+Cite every fact with its number in square brackets, one number per bracket. Keep it short and friendly.
+
+Sources:
+{sources}"""
+
+STORE_FINDER = {
+    "title": "Find a store",
+    "url": "https://suitsupply.com/en-nl/stores",
+    "text": "Store finder listing every store with its address and opening hours; each store page has a button to book an appointment.",
+}
 
 
-def respond(state: MessagesState):
-    # Placeholder node, the real assistant replaces this later
-    return {"messages": [AIMessage(f"You said: {state['messages'][-1].content}")]}
+class Route(BaseModel):
+    route: Literal["policy", "product", "other"]
+    section: Literal[tuple(SECTIONS)] | None = None
+    color: str | None = None
+    max_price: float | None = Field(None, description="maximum price in EUR")
+    country: str | None = Field(None, description="country name in English, only for questions about stores in a country")
 
 
-builder = StateGraph(MessagesState)
-builder.add_node("respond", respond)
-builder.add_edge(START, "respond")
-builder.add_edge("respond", END)
+class State(MessagesState):
+    route: Route
+    sources: list[dict]
+    fallback: bool
+
+
+router = llm.with_structured_output(Route)
+
+
+def question(state: State) -> str:
+    return state["messages"][-1].content
+
+
+def route(state: State):
+    return {"route": router.invoke([SystemMessage(ROUTER_PROMPT), HumanMessage(question(state))])}
+
+
+def policy_search(state: State):
+    # "Which stores are in X" needs every store there, not just the top search hits
+    country = state["route"].country
+    stores = retrieval.stores_in(country) if country else []
+    return {"sources": stores or retrieval.search(question(state))}
+
+
+def product_search(state: State):
+    r = state["route"]
+    found = retrieval.search_products(question(state), r.section, r.color, r.max_price)
+    return {"sources": [
+        {
+            "title": p["name"],
+            "url": p["url"],
+            "text": f"{p['name']} - {p['color']}, {p['material']}, EUR {p['price']:.0f}. {p['description']}",
+            "product": card(p),
+        }
+        for p in found
+    ]}
+
+
+def numbered(sources: list[dict]) -> str:
+    return "\n\n".join(
+        f"[{i}] {s['title']}" + (f" > {s['heading']}" if s.get("heading") else "") + f"\n{s['text']}"
+        for i, s in enumerate(sources, 1)
+    ) or "(none)"
+
+
+def answer(state: State):
+    reply = llm.invoke([SystemMessage(ANSWER_PROMPT.format(sources=numbered(state["sources"]))), HumanMessage(question(state))])
+    if NO_ANSWER in reply.text:
+        return {"fallback": True}
+    return {"messages": [AIMessage(reply.text)]}
+
+
+def fallback(state: State):
+    # Contact options and appointment info come from the crawled pages, so they stay citable
+    sources = retrieval.contact_sources() + [STORE_FINDER]
+    reply = llm.invoke([SystemMessage(FALLBACK_PROMPT.format(sources=numbered(sources))), HumanMessage(question(state))])
+    return {"messages": [AIMessage(reply.text)], "sources": sources, "fallback": True}
+
+
+builder = StateGraph(State)
+builder.add_node(route)
+builder.add_node(policy_search)
+builder.add_node(product_search)
+builder.add_node(answer)
+builder.add_node(fallback)
+builder.add_edge(START, "route")
+builder.add_conditional_edges(
+    "route", lambda s: s["route"].route, {"policy": "policy_search", "product": "product_search", "other": "fallback"}
+)
+builder.add_edge("policy_search", "answer")
+builder.add_edge("product_search", "answer")
+builder.add_conditional_edges("answer", lambda s: "fallback" if s.get("fallback") else END, ["fallback", END])
+builder.add_edge("fallback", END)
 graph = builder.compile()
 
 # Tracing is optional so the api runs locally without Langfuse keys
@@ -23,14 +145,26 @@ if tracing:
     langfuse_handler = CallbackHandler()
 
 
-def run_agent(message: str, session_id: str | None = None) -> str:
+def run_agent(message: str, session_id: str | None = None) -> dict:
     config = {
         "run_name": "stylist-agent",
         "callbacks": [langfuse_handler] if tracing else [],
         "metadata": {"langfuse_session_id": session_id} if session_id else {},
     }
-    result = graph.invoke({"messages": [HumanMessage(message)]}, config=config)
-    return result["messages"][-1].content
+    state = graph.invoke({"messages": [HumanMessage(message)]}, config=config)
+    reply = state["messages"][-1].content
+    # Only return the sources the answer actually cites
+    # Handles [2] as well as [2, 5] in case the model groups citations
+    cited = {int(n) for group in re.findall(r"\[([\d,\s]+)\]", reply) for n in re.findall(r"\d+", group)}
+    used = [(i, s) for i, s in enumerate(state["sources"], 1) if i in cited]
+    return {
+        "reply": reply,
+        "route": state["route"].route,
+        "fallback": state.get("fallback", False),
+        "sources": [{"n": i, "title": s["title"], "url": s["url"]} for i, s in used],
+        # Cards for the products the answer recommends, in source order
+        "products": [{"n": i, **s["product"]} for i, s in used if "product" in s],
+    }
 
 
 def flush():
