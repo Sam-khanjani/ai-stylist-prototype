@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS events_created ON events (created_at);
 CREATE INDEX IF NOT EXISTS events_trace ON events (trace_id);
 
--- One row per use of the try-on panel: no photo, measurements or visitor id, only what was used, cost and timing
+-- One row per use of the try-on panel: no photo or measurements, only what was used, cost and timing
 CREATE TABLE IF NOT EXISTS tryon_events (
     id bigserial PRIMARY KEY,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS eval_runs (
 
 -- Added later; IF NOT EXISTS keeps existing databases working
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS route text;
+-- Only for the daily try-on limit; cleared after a day by cleanup()
+ALTER TABLE tryon_events ADD COLUMN IF NOT EXISTS visitor_id uuid;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS latency_ms integer;
 ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS gate_passed boolean;
 ALTER TABLE eval_runs ADD COLUMN IF NOT EXISTS baseline text;
@@ -97,15 +99,25 @@ def cleanup() -> int:
         conn.execute(f"UPDATE events SET trace_id = NULL WHERE trace_id IS NOT NULL AND created_at < now() - interval '{RETENTION_DAYS} days'")
         conn.execute(f"DELETE FROM events WHERE created_at < now() - interval '{EVENT_RETENTION_DAYS} days'")
         conn.execute(f"DELETE FROM tryon_events WHERE created_at < now() - interval '{EVENT_RETENTION_DAYS} days'")
+        conn.execute("UPDATE tryon_events SET visitor_id = NULL WHERE visitor_id IS NOT NULL AND created_at < now() - interval '1 day'")
     return deleted
 
 
-def record_tryon(kind: str, product_ids: list[str], ok: bool, latency_ms: int, cost_usd: float = 0):
+def record_tryon(kind: str, product_ids: list[str], ok: bool, latency_ms: int, cost_usd: float = 0, visitor_id=None):
     with db.connection() as conn:
         conn.execute(
-            "INSERT INTO tryon_events (kind, product_ids, ok, latency_ms, cost_usd) VALUES (%s, %s, %s, %s, %s)",
-            (kind, product_ids, ok, latency_ms, cost_usd),
+            "INSERT INTO tryon_events (kind, product_ids, ok, latency_ms, cost_usd, visitor_id) VALUES (%s, %s, %s, %s, %s, %s)",
+            (kind, product_ids, ok, latency_ms, cost_usd, visitor_id),
         )
+
+
+def tryons_today(visitor_id: str) -> int:
+    """Try-ons this visitor started in the last 24 hours, blocked ones included (they were still sent to the model)."""
+    with db.connection() as conn:
+        return conn.execute(
+            "SELECT count(*) FROM tryon_events WHERE kind = 'tryon' AND visitor_id = %s AND created_at > now() - interval '1 day'",
+            (visitor_id,),
+        ).fetchone()[0]
 
 
 def record_event(route: str, fallback: bool, latency_ms: int, trace_id: str | None):

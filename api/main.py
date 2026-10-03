@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -145,8 +146,11 @@ def ms_since(start: float) -> int:
     return int((time.monotonic() - start) * 1000)
 
 
+TRYON_DAILY_LIMIT = int(os.getenv("TRYON_DAILY_LIMIT", "10"))  # per visitor; each try-on costs $0.06-0.13
+
+
 @app.post("/tryon")
-def try_on(req: TryOnRequest):
+def try_on(req: TryOnRequest, visitor_id: str = Depends(visitor)):
     start = time.monotonic()
     if not req.product_ids:
         if not req.body and not req.weight_kg:
@@ -156,6 +160,8 @@ def try_on(req: TryOnRequest):
         return {"size": size, "image": None}
     if not req.photo:
         raise HTTPException(422, "Please add a photo first.")
+    if history.tryons_today(visitor_id) >= TRYON_DAILY_LIMIT:
+        raise HTTPException(429, f"You've reached today's limit of {TRYON_DAILY_LIMIT} try-ons. Please come back tomorrow.")
     try:
         person = tryon.photo_bytes(req.photo)
     except ValueError:
@@ -175,7 +181,7 @@ def try_on(req: TryOnRequest):
         raise HTTPException(422, f"We couldn't put the {e} on this photo. Please try another photo or item.")
     finally:
         # Usage and an estimated cost for the dashboard; nothing about the photo or the person
-        history.record_tryon("tryon", [p["id"] for _, p in outfit], ok, ms_since(start), tryon.cost(outfit))
+        history.record_tryon("tryon", [p["id"] for _, p in outfit], ok, ms_since(start), tryon.cost(outfit), visitor_id)
 
 
 class LookRequest(BaseModel):
