@@ -23,19 +23,19 @@ MAX_BYTES = 10 * 1024 * 1024  # also the model's limit per image
 URL_MINUTES = 10
 MODEL = "virtual-try-on-001"
 LOCATION = os.getenv("TRYON_LOCATION", "europe-west4")
-# An open outer layer (jacket, suit, waistcoat, coat) over a shirt or knit: the try-on model copies the garment's
-# product photo, empty interior included, which paints over the shirt. That step uses an image model we can instruct
-# instead. LAYER_MODEL="" switches it off. Fallback if 3.1 isn't served: gemini-2.5-flash-image @ europe-west4.
+# An outer layer (jacket, suit, waistcoat, coat) over anything already tried on: the try-on model repaints the whole
+# area the garment covers from its product photo (empty interior included, and the legs for a long coat), so the item
+# underneath is lost. That step uses an image model we can instruct instead. LAYER_MODEL="" switches it off. Fallback if 3.1 isn't served: gemini-2.5-flash-image @ europe-west4.
 LAYER_MODEL = os.getenv("LAYER_MODEL", "gemini-3.1-flash-image")
 LAYER_LOCATION = os.getenv("LAYER_LOCATION", "eu")
-INNER = {"shirts", "knitwear"}
 OUTER = {"waistcoats", "suits", "jackets", "coats"}
 LAYER_PROMPT = (
-    "The first image is a photo of a person. The second image is a product photo of a {name}. "
-    "Edit the first photo so the person wears this {name} over the clothes they already have on. "
-    "Their current shirt or sweater must stay visible underneath: at the collar and in the front opening. "
-    "If the product includes trousers, they replace the person's trousers. "
-    "Reproduce the garment's colour, fabric, pattern and details exactly. "
+    "The first image is a photo of a person. The second image is a product photo of this item: {name}. "
+    "Edit the first photo so the person wears this item over the clothes they already have on. "
+    "Everything they already wear stays exactly as it is wherever the item doesn't cover it: a shirt or sweater "
+    "at the collar and in the front opening, trousers and shoes below the hem. "
+    "If the item includes trousers, they replace the person's trousers. "
+    "Reproduce the item's colour, fabric, pattern and details exactly. "
     "Keep the person's face, hair, body shape, pose, the rest of their clothing and the background unchanged. "
     "Return only the edited photo."
 )
@@ -134,8 +134,8 @@ def render(visitor_id: str, photo_id: str, outfit: list[tuple[str, dict]]) -> st
     # One model call per item: the try-on model takes one product image per request
     worn: set[str] = set()
     for section, product in sorted(outfit, key=lambda item: LAYER[item[0]]):
-        over_inner = LAYER_MODEL and section in OUTER and worn & INNER
-        person = (layer if over_inner else dress)(person, product)
+        over_something = LAYER_MODEL and section in OUTER and worn
+        person = (layer if over_something else dress)(person, product)
         worn.add(section)
     return f"data:{mime(person)};base64," + base64.b64encode(person).decode()
 
