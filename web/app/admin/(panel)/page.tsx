@@ -11,7 +11,14 @@ type Langfuse = { enabled: false } | { enabled: true; usage: Section; daily: Sec
 type Run = {
   run: string;
   created_at: string;
-  summary: { questions: number; answer_accuracy: number; errors?: number; latency_avg: number; metrics: Record<string, number | null> };
+  summary: {
+    questions: number;
+    answer_accuracy: number;
+    errors?: number;
+    latency_avg: number;
+    metrics: Record<string, number | null>;
+    categories?: Record<string, number | null>;
+  };
   failures: { id: string; question: string; checks: string }[];
   gate_passed: boolean | null;
   baseline: string | null;
@@ -19,7 +26,17 @@ type Run = {
   fixed: { id: string; question: string }[] | null;
   saved_as_baseline: boolean | null;
 };
-type Gap = { created_at: string; question: string; answer: string; fallback: boolean; vote: 0 | 1 | null };
+type Gap = {
+  message_id: number;
+  conversation_id: string;
+  created_at: string;
+  question: string;
+  answer: string;
+  fallback: boolean;
+  vote: 0 | 1 | null;
+  trace_url: string | null;
+  session_url: string | null;
+};
 type Request = {
   created_at: string;
   route: string | null;
@@ -31,6 +48,13 @@ type Request = {
   cost?: number;
   llm_calls?: number;
   models?: string[];
+  trace_url: string | null;
+};
+type TryOnKind = { uses: number; failures: number; avg_latency_ms: number | null; cost: number };
+type TryOnUsage = {
+  totals: Partial<Record<"size" | "tryon" | "look", TryOnKind>>;
+  daily: { day: string; tryons: number; sizes: number; cost: number }[];
+  top_products: { id: string; uses: number; name: string; color?: string | null; section?: string; url?: string }[];
 };
 type Status = { chunks: number; products: number; conversations: number; messages: number; events: number; retention_days: number; chat_model: string; embedding_model: string; tracing: boolean; revision: string };
 
@@ -41,6 +65,14 @@ const tone = (value: number | null, good: (v: number) => boolean, ok: (v: number
   value == null ? null : good(value) ? "good" : ok(value) ? "warning" : "critical";
 const TONE_LABEL: Record<Tone, string> = { good: "Good", warning: "Watch", critical: "Poor" };
 const badge = (t: Tone | null) => t && <StatusBadge tone={t} label={TONE_LABEL[t]} />;
+
+function ExternalLink({ href, title, children }: { href: string; title?: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" title={title} className="text-text underline decoration-gray-500 underline-offset-2 hover:decoration-gray-900">
+      {children} ↗
+    </a>
+  );
+}
 
 function Loading({ text }: { text: string }) {
   return <p className="text-sm text-text-secondary">{text}</p>;
@@ -164,7 +196,7 @@ async function RecentRequests() {
           <table className="w-full text-left text-sm">
             <thead className="sticky top-0 bg-white text-xs text-text-secondary">
               <tr>
-                {["Time", "Feature", "Latency", "Tokens in", "Tokens out", "Cost", "LLM calls", "Vote"].map((h) => (
+                {["Time", "Feature", "Latency", "Tokens in", "Tokens out", "Cost", "LLM calls", "Vote", "Trace"].map((h) => (
                   <th key={h} className="pr-4 pb-2 font-normal whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -184,7 +216,8 @@ async function RecentRequests() {
                   <td className="pr-4">{r.tokens_out?.toLocaleString() ?? "–"}</td>
                   <td className="pr-4">{usd(r.cost)}</td>
                   <td className="pr-4 text-xs text-text-secondary" title={r.models?.join(", ")}>{r.llm_calls ?? "–"}</td>
-                  <td>{r.vote === 1 ? "👍" : r.vote === 0 ? "👎" : ""}</td>
+                  <td className="pr-4">{r.vote === 1 ? "👍" : r.vote === 0 ? "👎" : ""}</td>
+                  <td className="text-xs">{r.trace_url ? <ExternalLink href={r.trace_url}>Open</ExternalLink> : "–"}</td>
                 </tr>
               ))}
             </tbody>
@@ -194,7 +227,7 @@ async function RecentRequests() {
                 <td>{totals.in.toLocaleString()}</td>
                 <td>{totals.out.toLocaleString()}</td>
                 <td>{usd(totals.cost)}</td>
-                <td colSpan={2} />
+                <td colSpan={3} />
               </tr>
             </tfoot>
           </table>
@@ -204,15 +237,85 @@ async function RecentRequests() {
   );
 }
 
+// Try-on panel usage from our own table: counts, failures, estimated cost and the products tried on most
+function TryOnPanel({ usage, days }: { usage: TryOnUsage; days: number }) {
+  const t = usage.totals;
+  const tryons = t.tryon?.uses ?? 0;
+  const cost = Object.values(t).reduce((sum, k) => sum + (k?.cost ?? 0), 0);
+  const failed = pct(t.tryon?.failures ?? 0, tryons);
+  const byDay = new Map(usage.daily.map((d) => [d.day, d]));
+  const top = usage.top_products;
+  const most = Math.max(...top.map((p) => p.uses), 1);
+  return (
+    <Card title="Try it on" action={<span className="text-xs text-text-secondary">usage and estimated cost · no photos stored</span>}>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Size requests" value={String(t.size?.uses ?? 0)} note="from a photo or height and weight" />
+        <Stat label="Try-ons" value={String(tryons)} note={`avg ${seconds(t.tryon?.avg_latency_ms)} · ${t.look?.uses ?? 0} looks suggested`} />
+        <Stat
+          label="Failed try-ons"
+          value={failed == null ? "–" : `${failed}%`}
+          note={`${t.tryon?.failures ?? 0} of ${tryons}`}
+          status={badge(tone(failed, (v) => v <= 5, (v) => v <= 15))}
+        />
+        <Stat label="Estimated cost" value={usd(cost)} note={tryons ? `${usd((t.tryon?.cost ?? 0) / tryons)} per try-on · list prices` : "list prices"} />
+      </div>
+      <div className="mt-5 grid gap-6 lg:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs text-text-secondary">Try-ons per day</p>
+          <BarChart
+            label={`Try-ons per day, last ${days} days`}
+            bars={lastDays(days).map((day) => {
+              const d = byDay.get(day);
+              return {
+                key: day,
+                segments: [{ value: n(d?.tryons), className: "bg-accent" }],
+                tooltip: [day, `${n(d?.tryons)} try-ons`, `${n(d?.sizes)} size requests`, `≈ ${usd(n(d?.cost))}`],
+              };
+            })}
+          />
+        </div>
+        <div>
+          <p className="mb-2 text-xs text-text-secondary">Most tried-on products</p>
+          {top.length === 0 ? (
+            <p className="text-sm text-text-secondary">No try-ons in this period.</p>
+          ) : (
+            <ol className="space-y-2.5" aria-label="Most tried-on products">
+              {top.map((p) => (
+                <li key={p.id} className="text-sm" title={[p.name, p.color, p.section, `${p.uses} try-ons`].filter(Boolean).join(" · ")}>
+                  <div className="flex justify-between gap-3">
+                    {p.url ? (
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
+                        {p.name}
+                        {p.color && <span className="text-text-secondary"> · {p.color}</span>}
+                      </a>
+                    ) : (
+                      <span className="truncate">{p.name}</span>
+                    )}
+                    <span className="tabular-nums">{p.uses}</span>
+                  </div>
+                  <div className="mt-1 h-2 rounded-[4px] bg-gray-300">
+                    <div className="h-full rounded-[4px] bg-accent" style={{ width: `${(100 * p.uses) / most}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
   const requested = Number((await searchParams).days);
   const days = PERIODS.includes(requested) ? requested : 7;
   // Our own database only: fast
-  const [overview, runs, gaps, status] = await Promise.all([
+  const [overview, runs, gaps, status, tryonUsage] = await Promise.all([
     adminApi<Day[]>(`/overview?days=${days}`),
     adminApi<Run[]>("/evals"),
     adminApi<Gap[]>("/gaps"),
     adminApi<Status>("/status"),
+    adminApi<TryOnUsage>(`/tryon?days=${days}`),
   ]);
 
   const sum = (k: keyof Day) => overview.reduce((s, r) => s + n(r[k]), 0);
@@ -267,18 +370,21 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
             })}
           />
         </Card>
-        <Card title="Content gaps & 👎" action={<span className="text-xs text-text-secondary">fallbacks, downvotes</span>}>
+        <Card title="Content gaps & 👎" action={<span className="text-xs text-text-secondary">fallbacks, downvotes · open a trace to see why</span>}>
           {gaps.length === 0 ? (
             <p className="text-sm text-text-secondary">Nothing to review right now.</p>
           ) : (
             <ul className="max-h-48 space-y-3 overflow-y-auto">
-              {gaps.slice(0, 20).map((g, i) => (
-                <li key={i} title={g.answer.replaceAll("**", "")}>
+              {gaps.slice(0, 20).map((g) => (
+                <li key={g.message_id} title={g.answer.replaceAll("**", "")}>
                   <p className="truncate text-sm font-medium">{g.question}</p>
-                  <p className="mt-0.5 flex gap-2 text-xs text-text-secondary">
+                  <p className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-text-secondary">
+                    <span className="font-mono" title={`message ${g.message_id} · conversation ${g.conversation_id}`}>#{g.message_id}</span>
                     {g.fallback && <span>fallback</span>}
                     {g.vote === 0 && <span>👎</span>}
                     <span>{ago(g.created_at)}</span>
+                    {g.trace_url && <ExternalLink href={g.trace_url} title="This answer step by step: intent, sources, draft, judge">Trace</ExternalLink>}
+                    {g.session_url && <ExternalLink href={g.session_url} title="The whole conversation in Langfuse">Chat</ExternalLink>}
                   </p>
                 </li>
               ))}
@@ -287,15 +393,29 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
         </Card>
       </div>
 
-      <Card title="Eval gate history" action={<span className="text-xs text-text-secondary">golden dataset · 40 questions</span>}>
+      <TryOnPanel usage={tryonUsage} days={days} />
+
+      <Card title="Eval gate history" action={<span className="text-xs text-text-secondary">golden dataset · {latest?.summary.questions ?? 40} questions</span>}>
         {runs.length === 0 ? (
           <p className="text-sm text-text-secondary">No eval runs yet. Run <code>python eval/run.py</code>.</p>
         ) : (
           <div className="overflow-x-auto">
+            <p className="mb-2 text-xs text-text-secondary">Answer accuracy per run, oldest first · hover for details</p>
+            <div className="mb-5 flex h-16 items-end gap-1 border-b border-gray-400" role="img" aria-label="Answer accuracy per eval run, oldest first">
+              {[...runs].slice(0, 20).reverse().map((r) => (
+                <div
+                  key={r.run}
+                  className="flex h-full flex-1 items-end"
+                  title={`${new Date(r.created_at).toLocaleString()} · ${Math.round(100 * r.summary.answer_accuracy)}% · gate ${r.gate_passed == null ? "no baseline" : r.gate_passed ? "passed" : "failed"}`}
+                >
+                  <div className="w-full rounded-t-[4px] bg-accent hover:opacity-80" style={{ height: `${100 * r.summary.answer_accuracy}%`, minHeight: 3 }} />
+                </div>
+              ))}
+            </div>
             <table className="w-full text-left text-sm">
               <thead className="text-xs text-text-secondary">
                 <tr>
-                  {["Run", "Gate", "Answer accuracy", "Faithfulness", "Fact recall", "Citation precision", "Regressions", "Fixed", "Latency"].map((h) => (
+                  {["Run", "Gate", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Fixed", "Latency"].map((h) => (
                     <th key={h} className="pr-4 pb-2 font-normal whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -315,7 +435,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                       <td className="pr-4">
                         {r.gate_passed == null ? <StatusBadge tone="warning" label="No baseline" /> : <StatusBadge tone={r.gate_passed ? "good" : "critical"} label={r.gate_passed ? "Passed" : "Failed"} />}
                       </td>
-                      <td className="pr-4">
+                      <td
+                        className="pr-4"
+                        title={Object.entries(r.summary.categories ?? {})
+                          .map(([c, v]) => `${c}: ${v == null ? "–" : `${Math.round(100 * v)}%`}`)
+                          .join("\n")}
+                      >
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-20 overflow-hidden rounded-full bg-gray-300">
                             <div className="h-full rounded-full bg-accent" style={{ width: `${100 * acc}%` }} />
@@ -324,9 +449,11 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                           {delta != null && delta !== 0 && <span className="text-xs text-text-secondary">{delta > 0 ? `+${delta}` : delta}</span>}
                         </div>
                       </td>
+                      <td className="pr-4">{m.intent_accuracy?.toFixed(2) ?? "–"}</td>
                       <td className="pr-4">{m.faithfulness?.toFixed(2) ?? "–"}</td>
                       <td className="pr-4">{m.fact_recall?.toFixed(2) ?? "–"}</td>
                       <td className="pr-4">{m.citation_precision?.toFixed(2) ?? "–"}</td>
+                      <td className="pr-4" title="mid-conversation replies that don't greet again">{m.no_repeat_greeting?.toFixed(2) ?? "–"}</td>
                       <td className="pr-4 text-xs">
                         {r.regressions?.length ? (
                           <span className="text-critical" title={r.regressions.map((x) => `${x.id}: ${x.question}`).join("\n")}>

@@ -141,12 +141,19 @@ class TryOnRequest(BaseModel):
     body: sizing.Body | None = None  # pose measurements from the photo, taken in the browser
 
 
+def ms_since(start: float) -> int:
+    return int((time.monotonic() - start) * 1000)
+
+
 @app.post("/tryon")
 def try_on(req: TryOnRequest):
+    start = time.monotonic()
     if not req.product_ids:
         if not req.body and not req.weight_kg:
             raise HTTPException(422, "Please add a photo or your weight.")
-        return {"size": sizing.advise(req.height_cm, req.weight_kg, req.fit, req.body), "image": None}
+        size = sizing.advise(req.height_cm, req.weight_kg, req.fit, req.body)
+        history.record_tryon("size", [], True, ms_since(start))
+        return {"size": size, "image": None}
     if not req.photo:
         raise HTTPException(422, "Please add a photo first.")
     try:
@@ -159,10 +166,16 @@ def try_on(req: TryOnRequest):
         raise HTTPException(404, "One of these products can't be tried on.")
     if tryon.clash([s for s, _ in outfit]):
         raise HTTPException(422, "These items can't be worn together. Please pick one of them.")
+    ok = False
     try:
-        return {"size": None, "image": tryon.render(person, outfit)}
+        image = tryon.render(person, outfit)
+        ok = True
+        return {"size": None, "image": image}
     except tryon.Blocked as e:
         raise HTTPException(422, f"We couldn't put the {e} on this photo. Please try another photo or item.")
+    finally:
+        # Usage and an estimated cost for the dashboard; nothing about the photo or the person
+        history.record_tryon("tryon", [p["id"] for _, p in outfit], ok, ms_since(start), tryon.cost(outfit))
 
 
 class LookRequest(BaseModel):
@@ -172,7 +185,13 @@ class LookRequest(BaseModel):
 @app.post("/tryon/look")
 def complete_the_look(req: LookRequest):
     """2-3 catalog items that complete the try-on outfit, each with a short reason."""
-    return {"items": look.complete(tuple(sorted(set(req.product_ids))))}
+    start, cached = time.monotonic(), look.complete.cache_info().hits
+    ids = tuple(sorted(set(req.product_ids)))
+    items = look.complete(ids)
+    # A cached outfit costs nothing; otherwise one small flash-lite call
+    fresh = look.complete.cache_info().hits == cached
+    history.record_tryon("look", list(ids), bool(items), ms_since(start), look.COST_USD if fresh else 0)
+    return {"items": items}
 
 
 @app.post("/maintenance/cleanup")

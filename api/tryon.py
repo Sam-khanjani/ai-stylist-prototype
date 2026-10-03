@@ -89,14 +89,28 @@ def garment(product: dict) -> bytes:
     return httpx.get(url, timeout=20, follow_redirects=True).raise_for_status().content
 
 
+# List prices per generated image (USD, October 2026), for the dashboard's cost estimate
+PRICE_USD = {"dress": 0.06, "layer": 0.067}
+
+
+def plan(outfit: list[tuple[str, dict]]) -> list[tuple]:
+    """(step, product) per model call, dressing inside out. An outer layer over something already tried on goes to
+    the instructable image model; everything else to the try-on model, which takes one product image per request."""
+    steps, worn = [], set()
+    for section, product in sorted(outfit, key=lambda item: LAYER[item[0]]):
+        steps.append((layer if LAYER_MODEL and section in OUTER and worn else dress, product))
+        worn.add(section)
+    return steps
+
+
+def cost(outfit: list[tuple[str, dict]]) -> float:
+    return sum(PRICE_USD[step.__name__] for step, _ in plan(outfit))
+
+
 def render(person: bytes, outfit: list[tuple[str, dict]]) -> str:
     """The person wearing the outfit, as a data URL. `outfit` is (section, product) pairs."""
-    # One model call per item: the try-on model takes one product image per request
-    worn: set[str] = set()
-    for section, product in sorted(outfit, key=lambda item: LAYER[item[0]]):
-        over_something = LAYER_MODEL and section in OUTER and worn
-        person = (layer if over_something else dress)(person, product)
-        worn.add(section)
+    for step, product in plan(outfit):
+        person = step(person, product)
     return f"data:{mime(person)};base64," + base64.b64encode(person).decode()
 
 

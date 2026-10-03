@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 import db
 import history
+from catalog import products, section_of
 
 router = APIRouter(prefix="/admin")
 CACHE_SECONDS = 60  # Langfuse answers are cached this long; its API takes ~1 s or more per call
@@ -22,6 +23,28 @@ def describe(e: Exception) -> str:
     message = (body.get("message") or body.get("error") or str(body)) if isinstance(body, dict) else (body or str(e))
     status = getattr(e, "status_code", None)
     return f"{status} · {message}"[:200] if status else str(message)[:200]
+
+
+_langfuse_project: str | None = None
+
+
+def langfuse_project() -> str | None:
+    """Base URL of our Langfuse project, for links to traces and sessions. Looked up once; None without Langfuse."""
+    global _langfuse_project
+    if _langfuse_project is None and os.getenv("LANGFUSE_SECRET_KEY"):
+        from langfuse import get_client
+
+        try:
+            url = get_client().get_trace_url(trace_id="0" * 32)  # any id: only the project part is kept
+            _langfuse_project = url.rsplit("/traces/", 1)[0] if url else None
+        except Exception:
+            pass  # no links this time; try again on the next request
+    return _langfuse_project
+
+
+def trace_url(trace_id: str | None) -> str | None:
+    base = langfuse_project()
+    return f"{base}/traces/{trace_id}" if base and trace_id else None
 
 
 def rows(sql: str, params=()) -> list[dict]:
@@ -54,10 +77,12 @@ def overview(days: int = 30):
 
 @router.get("/gaps")
 def gaps():
-    """Answers that fell back to contact options or got a thumbs down, with the question that led to them."""
-    return rows(
+    """Answers that fell back to contact options or got a thumbs down, with the question that led to them, and links
+    to the answer's Langfuse trace and to the whole conversation (a Langfuse session) for finding the cause."""
+    found = rows(
         """
-        SELECT a.conversation_id::text, a.created_at, q.text AS question, a.text AS answer, a.fallback, a.vote
+        SELECT a.id AS message_id, a.conversation_id::text, a.trace_id, a.created_at, q.text AS question,
+               a.text AS answer, a.fallback, a.vote
         FROM messages a
         JOIN LATERAL (
             SELECT text FROM messages q
@@ -68,6 +93,11 @@ def gaps():
         ORDER BY a.created_at DESC LIMIT 200
         """
     )
+    base = langfuse_project()
+    for g in found:
+        g["trace_url"] = trace_url(g.pop("trace_id"))
+        g["session_url"] = f"{base}/sessions/{g['conversation_id']}" if base else None
+    return found
 
 
 @router.get("/evals")
@@ -194,9 +224,45 @@ def requests(limit: int = 30):
         except Exception as e:  # Langfuse slow or down: still show our own numbers
             result["langfuse"] = f"error: {describe(e)}"
     for e in events:
-        e.pop("trace_id")
+        e["trace_url"] = trace_url(e.pop("trace_id"))
     _requests_cache[limit] = (time.monotonic(), result)
     return result
+
+
+@router.get("/tryon")
+def tryon_usage(days: int = 30):
+    """Try-on panel usage: uses, failures, latency and estimated cost per kind, try-ons per day and the products
+    tried on most. The table holds no photo or personal data."""
+    window = (days,)
+    since = "created_at > now() - make_interval(days => %s)"
+    totals = rows(
+        f"""
+        SELECT kind, count(*) AS uses, count(*) FILTER (WHERE NOT ok) AS failures,
+               round(avg(latency_ms))::int AS avg_latency_ms, coalesce(sum(cost_usd), 0)::float AS cost
+        FROM tryon_events WHERE {since} GROUP BY kind
+        """,
+        window,
+    )
+    daily = rows(
+        f"""
+        SELECT created_at::date AS day, count(*) FILTER (WHERE kind = 'tryon') AS tryons,
+               count(*) FILTER (WHERE kind = 'size') AS sizes, coalesce(sum(cost_usd), 0)::float AS cost
+        FROM tryon_events WHERE {since} GROUP BY 1 ORDER BY 1
+        """,
+        window,
+    )
+    top = rows(
+        f"""
+        SELECT u.product_id AS id, count(*) AS uses FROM tryon_events, unnest(product_ids) AS u(product_id)
+        WHERE kind = 'tryon' AND {since} GROUP BY u.product_id ORDER BY uses DESC, u.product_id LIMIT 10
+        """,
+        window,
+    )
+    catalog = {p["id"]: p for p in products()}
+    for t in top:
+        p = catalog.get(t["id"])
+        t |= {"name": p["name"], "color": p["color"], "section": section_of(p), "url": p["url"]} if p else {"name": t["id"]}
+    return {"totals": {t.pop("kind"): t for t in totals}, "daily": daily, "top_products": top}
 
 
 @router.get("/status")

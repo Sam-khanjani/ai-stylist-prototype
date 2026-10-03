@@ -48,6 +48,18 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS events_created ON events (created_at);
 CREATE INDEX IF NOT EXISTS events_trace ON events (trace_id);
 
+-- One row per use of the try-on panel: no photo, measurements or visitor id, only what was used, cost and timing
+CREATE TABLE IF NOT EXISTS tryon_events (
+    id bigserial PRIMARY KEY,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    kind text NOT NULL,                       -- size, tryon or look
+    product_ids text[] NOT NULL DEFAULT '{}',
+    ok boolean NOT NULL,
+    latency_ms integer,
+    cost_usd numeric(8, 4) NOT NULL DEFAULT 0  -- estimate from list prices
+);
+CREATE INDEX IF NOT EXISTS tryon_events_created ON tryon_events (created_at);
+
 -- Summaries of eval/run.py runs, shown in the admin dashboard
 CREATE TABLE IF NOT EXISTS eval_runs (
     run text PRIMARY KEY,
@@ -84,7 +96,16 @@ def cleanup() -> int:
         # Events keep only counts; drop their link to the (text-holding) Langfuse trace with the chat
         conn.execute(f"UPDATE events SET trace_id = NULL WHERE trace_id IS NOT NULL AND created_at < now() - interval '{RETENTION_DAYS} days'")
         conn.execute(f"DELETE FROM events WHERE created_at < now() - interval '{EVENT_RETENTION_DAYS} days'")
+        conn.execute(f"DELETE FROM tryon_events WHERE created_at < now() - interval '{EVENT_RETENTION_DAYS} days'")
     return deleted
+
+
+def record_tryon(kind: str, product_ids: list[str], ok: bool, latency_ms: int, cost_usd: float = 0):
+    with db.connection() as conn:
+        conn.execute(
+            "INSERT INTO tryon_events (kind, product_ids, ok, latency_ms, cost_usd) VALUES (%s, %s, %s, %s, %s)",
+            (kind, product_ids, ok, latency_ms, cost_usd),
+        )
 
 
 def record_event(route: str, fallback: bool, latency_ms: int, trace_id: str | None):

@@ -9,6 +9,7 @@ from catalog import card, products
 # Categories that can complete a look. One already worn isn't suggested again, nor what a worn item already covers.
 LOOK_CATEGORIES = {"Shirts", "Ties", "Shoes", "Belts", "Knitwear", "Trousers", "Jackets", "Waistcoats"}
 COVERS = {"Suits": {"Jackets", "Trousers"}, "Shorts": {"Trousers"}, "Coats": {"Jackets"}}
+COST_USD = 0.001  # rough estimate of one flash-lite call (~3K tokens in, 150 out), for the dashboard
 # Used when the model returns fewer than two usable items
 FALLBACK_ORDER = ["Shirts", "Ties", "Shoes", "Trousers", "Knitwear", "Belts"]
 
