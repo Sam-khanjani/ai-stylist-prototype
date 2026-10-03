@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 import admin
 import history
+import look
 import sizing
 import tryon
 from agent import delete_traces, flush, run_agent, score, stream_agent, summarize
@@ -165,6 +166,16 @@ def try_on(req: TryOnRequest, visitor_id: str = Depends(visitor)):
         raise HTTPException(404, "Your photo has expired. Please upload it again.")
     except tryon.Blocked as e:
         raise HTTPException(422, f"We couldn't put the {e} on this photo. Please try another photo or item.")
+
+
+class LookRequest(BaseModel):
+    product_ids: list[str] = Field(min_length=1, max_length=tryon.MAX_ITEMS)
+
+
+@app.post("/tryon/look")
+def complete_the_look(req: LookRequest):
+    """2-3 catalog items that complete the try-on outfit, each with a short reason."""
+    return {"items": look.complete(tuple(sorted(set(req.product_ids))))}
 
 
 @app.post("/maintenance/cleanup")

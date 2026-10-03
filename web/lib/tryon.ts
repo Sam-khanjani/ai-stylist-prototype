@@ -1,3 +1,4 @@
+import type { Card } from "./card";
 import type { Body } from "./pose";
 
 export type Fit = "slim" | "regular" | "relaxed";
@@ -81,4 +82,16 @@ export async function tryOn(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "The try-on didn't work. Please try again.");
   return data;
+}
+
+export type LookItem = Card & { reason: string | null };
+
+// 2-3 catalog items that go with the outfit; an empty list when the suggestions aren't available
+export async function completeTheLook(productIds: string[]): Promise<LookItem[]> {
+  const res = await fetch("/api/tryon/look", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ product_ids: productIds }),
+  });
+  return res.ok ? (await res.json()).items : [];
 }

@@ -4,7 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import ProductCard from "./ProductCard";
 import { formatPrice, type Card } from "@/lib/card";
 import { checkPhoto, preloadPose, type Body } from "@/lib/pose";
-import { deletePhoto, sizeOptions, tryOn, uploadPhoto, type Fit, type SizeAdvice } from "@/lib/tryon";
+import {
+  completeTheLook,
+  deletePhoto,
+  sizeOptions,
+  tryOn,
+  uploadPhoto,
+  type Fit,
+  type LookItem,
+  type SizeAdvice,
+} from "@/lib/tryon";
 
 const MAX_PHOTO_MB = 20;
 const HEIGHT = { min: 140, max: 220 };
@@ -37,6 +46,7 @@ const TROUSERS = sizeOptions(16);
 // Catalog grid plus the try-on panel: pick up to two items from the grid, upload a photo in the panel
 export default function TryOn({ products }: { products: Card[] }) {
   const [outfit, setOutfit] = useState<Card[]>([]);
+  const [look, setLook] = useState<LookItem[] | null>([]); // null while loading
   const [consent, setConsent] = useState(false);
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -59,6 +69,20 @@ export default function TryOn({ products }: { products: Card[] }) {
   const heightOk = heightCm >= HEIGHT.min && heightCm <= HEIGHT.max;
   const weightOk = !weight || (weightKg! >= WEIGHT.min && weightKg! <= WEIGHT.max);
   const bodyOk = heightOk && weightOk;
+
+  // "Complete the look" follows the outfit; a stale answer for an older outfit is ignored
+  const outfitKey = outfit.map((p) => p.id).join(",");
+  useEffect(() => {
+    if (!outfitKey) return setLook([]);
+    let stale = false;
+    setLook(null);
+    completeTheLook(outfitKey.split(","))
+      .catch(() => [])
+      .then((items) => !stale && setLook(items));
+    return () => {
+      stale = true;
+    };
+  }, [outfitKey]);
 
   useEffect(() => {
     if (!photo) return setPreview(null);
@@ -138,43 +162,47 @@ export default function TryOn({ products }: { products: Card[] }) {
     if (window.matchMedia("(max-width: 1023px)").matches) panel.current?.scrollIntoView({ behavior: "smooth" });
   }
 
+  // "Add to try-on" under a product card, with the reason when it can't be added
+  function tryButton(p: Card) {
+    if (!SLOTS[sectionOf(p)]) return null; // accessories can't be tried on
+    const added = outfit.some((o) => o.id === p.id);
+    const swaps = outfit.some((o) => sectionOf(o) === sectionOf(p)); // same kind: replaces it
+    const clash = !added && !swaps && outfit.find((o) => clashes(o, p));
+    const full = !added && !swaps && outfit.length >= MAX_ITEMS;
+    return (
+      <button
+        onClick={() => toggle(p)}
+        disabled={full || !!clash}
+        title={clash ? `Can't be worn together with ${clash.name}` : undefined}
+        className={`mx-1 mt-2 rounded-md border px-3 py-1 text-xs disabled:opacity-40 ${
+          added ? "border-gray-800 bg-gray-800 text-white" : "border-border hover:border-gray-600"
+        }`}
+      >
+        {added
+          ? "✓ In your try-on"
+          : clash
+            ? `Doesn't go with your ${clash.name}`
+            : full
+              ? `Try-on is full (${MAX_ITEMS} items)`
+              : swaps
+                ? "Swap into try-on"
+                : "Add to try-on"}
+      </button>
+    );
+  }
+
   const shown = result && !showOriginal ? result : preview;
   const canUpload = consent && bodyOk;
 
   return (
     <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
       <ul className="grid flex-1 grid-cols-2 gap-x-2 gap-y-10 md:grid-cols-3 lg:gap-y-16">
-        {products.map((p) => {
-          const added = outfit.some((o) => o.id === p.id);
-          const swaps = outfit.some((o) => sectionOf(o) === sectionOf(p)); // same kind: replaces it
-          const clash = SLOTS[sectionOf(p)] && !added && !swaps && outfit.find((o) => clashes(o, p));
-          const full = !added && !swaps && outfit.length >= MAX_ITEMS;
-          return (
-            <li key={p.id}>
-              <ProductCard product={p} />
-              {SLOTS[sectionOf(p)] && (
-                <button
-                  onClick={() => toggle(p)}
-                  disabled={full || !!clash}
-                  title={clash ? `Can't be worn together with ${clash.name}` : undefined}
-                  className={`mx-1 mt-2 rounded-md border px-3 py-1 text-xs disabled:opacity-40 ${
-                    added ? "border-gray-800 bg-gray-800 text-white" : "border-border hover:border-gray-600"
-                  }`}
-                >
-                  {added
-                    ? "✓ In your try-on"
-                    : clash
-                      ? `Doesn't go with your ${clash.name}`
-                      : full
-                        ? `Try-on is full (${MAX_ITEMS} items)`
-                        : swaps
-                          ? "Swap into try-on"
-                          : "Add to try-on"}
-                </button>
-              )}
-            </li>
-          );
-        })}
+        {products.map((p) => (
+          <li key={p.id}>
+            <ProductCard product={p} />
+            {tryButton(p)}
+          </li>
+        ))}
       </ul>
 
       <aside
@@ -336,6 +364,25 @@ export default function TryOn({ products }: { products: Card[] }) {
             </p>
           )}
         </div>
+
+        {outfit.length > 0 && look?.length !== 0 && (
+          <div className="space-y-2 border-t border-border pt-4">
+            <p className="text-sm font-medium">Complete the look</p>
+            {look === null ? (
+              <p className="text-xs text-text-secondary">Finding pieces that go with it…</p>
+            ) : (
+              <ul className="grid grid-cols-3 gap-2">
+                {look.map((p) => (
+                  <li key={p.id} className="text-xs">
+                    <ProductCard product={p} />
+                    {p.reason && <p className="mt-1 px-1 text-text-secondary">{p.reason}</p>}
+                    {tryButton(p)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* The panel scrolls on its own on desktop (it's sticky); keep the main action in view at its bottom */}
         <div className="bg-background lg:sticky lg:-bottom-4 lg:-mx-4 lg:-mb-4 lg:px-4 lg:pt-3 lg:pb-4">
