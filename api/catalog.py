@@ -6,6 +6,8 @@ from urllib.parse import urlparse
 
 CATALOG = Path(os.getenv("CATALOG_PATH", Path(__file__).resolve().parent.parent / "data/raw/products.jsonl"))
 SECTIONS = ["accessories", "coats", "jackets", "knitwear", "shirts", "shoes", "shorts", "suits", "trousers", "waistcoats"]
+# The colour words in the catalog ("Dark Grey" -> grey); the product filter matches them as written
+COLORS = ["black", "blue", "brown", "burgundy", "green", "grey", "navy", "pink", "purple", "sand", "taupe", "white"]
 
 
 @cache

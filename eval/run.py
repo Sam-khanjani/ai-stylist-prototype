@@ -132,8 +132,8 @@ def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
     try:
         # Multi-turn cases bring the earlier messages and the pages the previous answer cited
         history = [tuple(m) for m in g.get("history", [])]
-        start = agent.inputs(g["question"], g.get("summary", ""), history, g.get("previous_sources", []))
-        state = agent.graph.invoke(start, config=config)
+        first = agent.inputs(g["question"], g.get("summary", ""), history, g.get("previous_sources", []))
+        state = agent.graph.invoke(first, config=config)
         out = agent.result(state, trace_id)
         metrics = check(g, state, out) | (judge(g, state, out) if use_judge else {})
         error = None

@@ -8,7 +8,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from pydantic import BaseModel, Field
 
 import retrieval
-from catalog import SECTIONS, card, products
+from catalog import COLORS, SECTIONS, card, products
 
 llm = ChatGoogleGenerativeAI(
     # Flash-lite: routing and answering from given sources don't need the bigger model, and it is much faster
@@ -17,7 +17,7 @@ llm = ChatGoogleGenerativeAI(
     project=retrieval.PROJECT,
     # Gemini 3.x is not offered in single EU regions; the "eu" multi-region keeps processing in the EU
     location=os.getenv("GEMINI_LOCATION", "eu"),
-    temperature=0,
+    # No temperature: Gemini 3.x uses fixed sampling settings and ignores it (with a warning on every call)
 )
 
 # The memory is written by a cheaper, older model: condensing a chat doesn't need the newest one.
@@ -49,6 +49,8 @@ For product questions, also fill in the filters that the customer mentions. Leav
 If the customer asks about stores in a whole country, set country to its English name.
 Always set question to the customer's latest message rewritten as a standalone question, using the conversation
 so far for context (e.g. "and in Rotterdam?" after asking about Amsterdam opening hours -> "What are the opening hours of the Rotterdam store?").
+The message may have typos, slang or be in another language: understand what is meant and write question in clear,
+correctly spelled English, because the store's information is in English (e.g. "hebben jullie grijze pakken?" -> "Do you have grey suits?").
 
 Conversation so far:
 {history}"""
@@ -106,7 +108,7 @@ Decide whether the draft answer below is good enough to send to the customer. It
 1. It answers the customer's question; for a product request it recommends products that fit the request.
 2. Every fact (policies, prices, times, products, contact details) is supported by the numbered sources. Nothing is invented.
 3. Every citation [n] points to a source that supports that sentence.
-4. It is clear, polite and not repetitive.
+4. It is clear, polite and not repetitive. It may be in another language than the sources, to match the customer.
 The friendly closing line offering more help is expected and needs no citation.
 If it is not qualified, list the problems briefly so the writer can fix them.
 
@@ -155,8 +157,9 @@ ROUTE_OF = {"policy": "policy", "store": "policy", "product": "product"}
 class Intent(BaseModel):
     intent: IntentName
     section: Literal[tuple(SECTIONS)] | None = None
-    color: str | None = None
+    color: Literal[tuple(COLORS)] | None = Field(None, description="the closest catalog colour, e.g. gray or charcoal -> grey")
     max_price: float | None = Field(None, description="maximum price in EUR")
+    language: str = Field("English", description="the language the customer writes in")
     country: str | None = Field(None, description="country name in English, only for questions about stores in a country")
     question: str = Field("", description="the latest message as a standalone question")
     elaborate: bool = Field(False, description="the customer asks for more detail on the previous answer")
@@ -213,6 +216,9 @@ def history(state: State) -> str:
 def with_history(prompt: str, state: State) -> str:
     """Puts the conversation in front of a reply prompt, so the assistant continues it instead of starting over.
     In front, not after: behind a long list of sources the model loses the instruction and greets again."""
+    # The question is rewritten in English for search, so the customer's own language has to be asked for
+    if (i := state.get("intent")) and i.language.lower() != "english":
+        prompt = f"Reply in {i.language}, the customer's language.\n\n{prompt}"
     earlier = history(state)
     if not earlier:
         return "This is the start of a new conversation.\n\n" + prompt
