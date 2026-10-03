@@ -78,7 +78,7 @@ def evals():
     )
 
 
-AGENT_STEPS = ["route", "policy_search", "product_search", "answer", "fallback"]
+AGENT_STEPS = ["intent", "policy_search", "product_search", "answer", "judge", "smalltalk", "recall", "fallback"]
 NOT_EVAL = {"column": "environment", "operator": "none of", "value": ["eval"], "type": "stringOptions"}  # eval runs tag themselves
 
 

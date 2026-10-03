@@ -60,7 +60,7 @@ LIMIT %(k)s
 
 
 def search_products(text: str, section=None, color=None, max_price=None, k: int = 8) -> list[dict]:
-    """Hard filters from the router, ranked by meaning ("summer wedding" -> linen, light wool)."""
+    """Hard filters from intent detection, ranked by meaning ("summer wedding" -> linen, light wool)."""
     vec = embed_query(text)
     with db.connection() as conn:
         rows = conn.execute(
@@ -99,3 +99,14 @@ def search(text: str, k: int = 6) -> list[dict]:
     with db.connection() as conn:
         rows = conn.execute(HYBRID_SQL, {"vec": vec, "text": text, "k": k}).fetchall()
     return [{"title": t, "heading": h, "url": s, "text": c} for t, h, s, c, _ in rows]
+
+
+def from_pages(urls: list[str], text: str, k: int = 8) -> list[dict]:
+    """All sections of the given pages, best match first: more detail for "explain more" on a previous answer."""
+    vec = embed_query(text)
+    with db.connection() as conn:
+        rows = conn.execute(
+            "SELECT title, heading, source, content FROM chunks WHERE source = ANY(%s) ORDER BY embedding <=> %s LIMIT %s",
+            (urls, vec, k),
+        ).fetchall()
+    return [{"title": t, "heading": h, "url": s, "text": c} for t, h, s, c in rows]

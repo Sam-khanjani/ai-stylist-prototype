@@ -287,7 +287,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
         </Card>
       </div>
 
-      <Card title="Eval gate history" action={<span className="text-xs text-text-secondary">golden dataset · 30 questions</span>}>
+      <Card title="Eval gate history" action={<span className="text-xs text-text-secondary">golden dataset · 40 questions</span>}>
         {runs.length === 0 ? (
           <p className="text-sm text-text-secondary">No eval runs yet. Run <code>python eval/run.py</code>.</p>
         ) : (

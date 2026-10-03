@@ -272,7 +272,11 @@ export default function ChatWidget() {
         <div ref={scrollRef} className={`flex-1 space-y-6 overflow-y-auto px-4 py-4 ${showHistory ? "hidden" : ""}`}>
           {messages.length === 0 && (
             <div>
-              <p className="text-sm">Hi! How can I help you today?</p>
+              <p className="text-sm">Hi, welcome! I'm your style and service assistant.</p>
+              <p className="mt-2 text-sm">
+                I can help you find the right outfit, answer questions about shipping, returns and sizing, or find a store
+                near you. How can I help you today?
+              </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {SUGGESTIONS.map((q) => (
                   <button

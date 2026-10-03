@@ -35,14 +35,17 @@ RESULTS = HERE / "results"
 
 # Deterministic checks: a question passes only if all that apply are perfect. answer_accuracy = share of passed questions.
 CHECKS = [
-    "route_accuracy",     # router chose the expected route
+    "intent_accuracy",    # intent detection chose the expected intent
+    "route_accuracy",     # intent detection chose the expected route
     "fallback_accuracy",  # contact fallback shown exactly when expected
     "retrieval_recall",   # an expected page is in the retrieved top-k (hit@k)
     "citation_recall",    # the answer cites an expected page
     "citation_validity",  # the answer cites something, and every [n] points to an existing source
     "fact_recall",        # share of expected facts present in the answer
     "product_accuracy",   # product cards satisfy the requested section, color and price
+    "no_repeat_greeting", # mid-conversation replies don't start with "Hello" again
 ]
+NO_CITATIONS = {"greeting", "conversation"}  # small talk and questions about the chat itself have no sources
 # Reported but not pass/fail: ranking quality, and LLM-graded scores that can vary between runs
 INFO = ["retrieval_mrr"]
 JUDGE = ["faithfulness", "citation_precision", "answer_relevance"]
@@ -87,14 +90,18 @@ def check(g: dict, state: dict, out: dict) -> dict:
     ranks = [i for i, s in enumerate(state["sources"], 1) if relevant(s["url"])]
     numbers = [int(n) for group in re.findall(r"\[([\d,\s]+)\]", out["reply"]) for n in re.findall(r"\d+", group)]
     return {
+        "intent_accuracy": out.get("intent") == g["intent"] if g.get("intent") else None,
         "route_accuracy": out["route"] == g["route"] if g.get("route") else None,
         "fallback_accuracy": out["fallback"] == g["fallback"],
         "retrieval_recall": bool(ranks) if g["sources"] else None,
         "retrieval_mrr": 1 / ranks[0] if ranks else 0.0 if g["sources"] else None,
         "citation_recall": any(relevant(s["url"]) for s in out["sources"]) if g["sources"] else None,
-        "citation_validity": bool(numbers) and all(1 <= n <= len(state["sources"]) for n in numbers),
+        "citation_validity": None
+        if g.get("intent") in NO_CITATIONS
+        else bool(numbers) and all(1 <= n <= len(state["sources"]) for n in numbers),
         "fact_recall": sum(bool(re.search(f, out["reply"], re.I)) for f in g["facts"]) / len(g["facts"]) if g["facts"] else None,
         "product_accuracy": product_ok(out["products"], g["products"]) if g.get("products") else None,
+        "no_repeat_greeting": not re.match(r"\W*(hello|hi|hey)\b", out["reply"], re.I) if g.get("history") else None,
     }
 
 
@@ -123,7 +130,10 @@ def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
     start = time.time()
     trace_id, config = agent.run_config(session_id=run_name)  # one Langfuse session per eval run
     try:
-        state = agent.graph.invoke({"messages": [HumanMessage(g["question"])]}, config=config)
+        # Multi-turn cases bring the earlier messages and the pages the previous answer cited
+        history = [tuple(m) for m in g.get("history", [])]
+        start = agent.inputs(g["question"], g.get("summary", ""), history, g.get("previous_sources", []))
+        state = agent.graph.invoke(start, config=config)
         out = agent.result(state, trace_id)
         metrics = check(g, state, out) | (judge(g, state, out) if use_judge else {})
         error = None

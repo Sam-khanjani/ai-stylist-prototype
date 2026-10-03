@@ -186,3 +186,13 @@ def delete_visitor(visitor_id: str) -> list[str]:
         ).fetchall()
         conn.execute("DELETE FROM conversations WHERE visitor_id = %s", (visitor_id,))
     return [t for (t,) in trace_ids]
+
+
+def last_sources(conversation_id: str) -> list[str]:
+    """Urls the assistant's previous answer cited (pages or products), for follow-ups like "explain more"."""
+    with db.connection() as conn:
+        row = conn.execute(
+            "SELECT sources FROM messages WHERE conversation_id = %s AND role = 'assistant' ORDER BY id DESC LIMIT 1",
+            (conversation_id,),
+        ).fetchone()
+    return [s["url"] for s in (row[0] or [])] if row else []
