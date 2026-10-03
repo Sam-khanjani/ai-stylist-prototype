@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import ProductCard from "./ProductCard";
 import { formatPrice, type Card } from "@/lib/card";
-import { checkPhoto, preloadPose } from "@/lib/pose";
-import { deletePhoto, tryOn, uploadPhoto } from "@/lib/tryon";
+import { checkPhoto, preloadPose, type Body } from "@/lib/pose";
+import { deletePhoto, sizeOptions, tryOn, uploadPhoto, type Fit, type SizeAdvice } from "@/lib/tryon";
 
 const MAX_PHOTO_MB = 20;
 const HEIGHT = { min: 140, max: 220 };
@@ -15,6 +15,8 @@ const BUSY_TEXT = {
   size: "Estimating your size…",
   render: "Dressing you in",
 };
+const JACKETS = sizeOptions(10);
+const TROUSERS = sizeOptions(16);
 
 // Catalog grid plus the try-on panel: pick a product from the grid, upload a photo in the panel
 export default function TryOn({ products }: { products: Card[] }) {
@@ -25,11 +27,15 @@ export default function TryOn({ products }: { products: Card[] }) {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [size, setSize] = useState<string | null>(null);
+  const [fit, setFit] = useState<Fit>("regular");
+  const [body, setBody] = useState<Body | null>(null);
+  const [size, setSize] = useState<SizeAdvice | null>(null);
+  const [chosen, setChosen] = useState<{ jacket?: string; trousers?: string }>({});
   const [result, setResult] = useState<string | null>(null);
   const [showOriginal, setShowOriginal] = useState(false);
   const [busy, setBusy] = useState<keyof typeof BUSY_TEXT | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const panel = useRef<HTMLElement>(null);
 
   const heightCm = Number(height);
@@ -57,11 +63,14 @@ export default function TryOn({ products }: { products: Card[] }) {
     }
   }
 
-  async function run(kind: "size" | "render", id = photoId) {
-    if (!id || !bodyOk) return;
+  async function run(kind: "size" | "render", id = photoId, measured = body) {
+    if (!bodyOk) return;
     await work(kind, async () => {
-      const r = await tryOn(id, kind === "render" ? product!.id : null, { heightCm, weightKg });
-      if (r.size) setSize(r.size);
+      const r = await tryOn(id, kind === "render" ? product!.id : null, { heightCm, weightKg, fit }, measured);
+      if (r.size) {
+        setSize(r.size);
+        setChosen({});
+      }
       if (r.image) {
         setResult(r.image);
         setShowOriginal(false);
@@ -76,23 +85,30 @@ export default function TryOn({ products }: { products: Card[] }) {
     setPhoto(file);
     setSize(null);
     setResult(null);
+    setWarnings([]);
     let id: string | null = null;
+    let measured: Body | null = null;
     await work("check", async () => {
-      const reason = await checkPhoto(file);
-      if (reason) throw new Error(reason);
+      const checked = await checkPhoto(file);
+      if ("reason" in checked) throw new Error(checked.reason);
+      measured = checked.body;
+      setWarnings(checked.warnings);
       setBusy("upload");
       id = await uploadPhoto(file);
       setPhotoId(id);
+      setBody(measured);
     });
     if (!id) return setPhoto(null);
-    await run("size", id);
+    if (measured || weightKg) await run("size", id, measured); // otherwise the size needs a weight first
   }
 
   function removePhoto() {
     if (photoId) deletePhoto(photoId); // the bucket would delete it within a day anyway
     setPhoto(null);
     setPhotoId(null);
+    setBody(null);
     setSize(null);
+    setWarnings([]);
     setResult(null);
     setError(null);
   }
@@ -136,7 +152,19 @@ export default function TryOn({ products }: { products: Card[] }) {
 
         <div className="flex gap-3">
           <NumberField label="Height (cm)" value={height} onChange={setHeight} range={HEIGHT} invalid={!!height && !heightOk} />
-          <NumberField label="Weight (kg, optional)" value={weight} onChange={setWeight} range={WEIGHT} invalid={!weightOk} />
+          <NumberField label="Weight (kg)" value={weight} onChange={setWeight} range={WEIGHT} invalid={!weightOk} />
+          <label className="flex-1 text-xs text-text-secondary">
+            Fit
+            <select
+              value={fit}
+              onChange={(e) => setFit(e.target.value as Fit)}
+              className="mt-1 block w-full rounded-md border border-border px-1 py-1 text-sm text-text"
+            >
+              <option value="slim">Slim</option>
+              <option value="regular">Regular</option>
+              <option value="relaxed">Relaxed</option>
+            </select>
+          </label>
         </div>
 
         {!photo ? (
@@ -180,7 +208,7 @@ export default function TryOn({ products }: { products: Card[] }) {
                   ? "Enter your height first."
                   : !consent
                     ? "Tick the box above first."
-                    : "Stand straight facing the camera, whole body in frame, fitted clothes, plain background. At least 512 × 1024 px."}
+                    : "Stand straight facing the camera, whole body in frame, arms slightly away from your sides, fitted clothes, plain background. At least 512 × 1024 px."}
               </span>
             </label>
           </>
@@ -211,7 +239,15 @@ export default function TryOn({ products }: { products: Card[] }) {
           </div>
         )}
 
-        {/* Right under the photo, so a rejected photo's reason is seen */}
+        {/* Right under the photo, so the user sees why a photo was rejected or what could be better */}
+        {warnings.map((w) => (
+          <p key={w} className="flex items-start gap-1.5 text-xs">
+            <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded-full bg-warning text-[10px] text-gray-900">
+              !
+            </span>
+            {w}
+          </p>
+        ))}
         {error && (
           <p className="flex items-start gap-1.5 text-xs text-text-secondary">
             <span aria-hidden className="flex size-4 shrink-0 items-center justify-center rounded-full bg-gray-300 text-[10px]">
@@ -221,18 +257,26 @@ export default function TryOn({ products }: { products: Card[] }) {
           </p>
         )}
 
-        <div className="flex items-end justify-between gap-3">
+        <div className="space-y-3 border-t border-border pt-4">
+          {size && <SizeCard advice={size} chosen={chosen} onChoose={(c) => setChosen({ ...chosen, ...c })} />}
           <button
             onClick={() => run("size")}
-            disabled={!photoId || !bodyOk || !!busy}
+            disabled={!bodyOk || !!busy || (!body && !weightKg)}
             className="rounded-md border border-border px-3 py-1.5 text-xs hover:border-gray-600 disabled:opacity-40"
           >
-            {size ? "Update my size" : "Get my size"}
+            {busy === "size"
+              ? "Estimating…"
+              : body || photoId
+                ? size
+                  ? "Update my size"
+                  : "Get my size"
+                : "Get my size without a photo"}
           </button>
-          <div className="text-right">
-            <p className="text-xs text-text-secondary">Your size</p>
-            <p className="text-2xl font-medium">{size ?? "—"}</p>
-          </div>
+          {!body && !weightKg && (
+            <p className="text-xs text-text-secondary">
+              {photoId ? "Add your weight to get your size." : "No photo? Enter your height and weight to get a size."}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3 border-t border-border pt-4">
@@ -267,6 +311,80 @@ export default function TryOn({ products }: { products: Card[] }) {
         </button>
       </aside>
     </div>
+  );
+}
+
+// Recommended sizes, which the user can change; changes stay in this browser tab
+function SizeCard({
+  advice,
+  chosen,
+  onChoose,
+}: {
+  advice: SizeAdvice;
+  chosen: { jacket?: string; trousers?: string };
+  onChoose: (c: { jacket?: string; trousers?: string }) => void;
+}) {
+  const m = advice.measurements;
+  const measured = [
+    m.chest && `chest ${m.chest}`,
+    m.waist && `waist ${m.waist}`,
+    m.arm && `arm ${m.arm}`,
+    m.inseam && `inseam ${m.inseam}`,
+  ].filter(Boolean);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-medium">Your size</p>
+      <div className="grid grid-cols-2 gap-3">
+        <SizePick title="Jacket" options={JACKETS} recommended={advice.jacket.label} value={chosen.jacket} onChange={(jacket) => onChoose({ jacket })} />
+        <SizePick title="Trousers" options={TROUSERS} recommended={advice.trousers.label} value={chosen.trousers} onChange={(trousers) => onChoose({ trousers })} />
+      </div>
+      {advice.reasons.length > 0 && <p className="text-xs text-text-secondary">{advice.reasons.join(" ")}</p>}
+      <ul className="list-disc space-y-1 pl-4 text-xs">
+        {advice.notes.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+      {measured.length > 0 && <p className="text-xs text-text-secondary">Estimated (cm): {measured.join(" · ")}</p>}
+    </div>
+  );
+}
+
+function SizePick({
+  title,
+  options,
+  recommended,
+  value,
+  onChange,
+}: {
+  title: string;
+  options: { label: string }[];
+  recommended: string;
+  value?: string;
+  onChange: (label: string | undefined) => void;
+}) {
+  const changed = value && value !== recommended;
+  return (
+    <label className="text-xs text-text-secondary">
+      {title}
+      <select
+        value={value ?? recommended}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 block w-full rounded-md border border-border px-1 py-1 text-sm font-medium text-text"
+      >
+        {options.map((o) => (
+          <option key={o.label} value={o.label}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {changed ? (
+        <button type="button" onClick={() => onChange(undefined)} className="mt-1 underline">
+          Changed by you · reset
+        </button>
+      ) : (
+        <span className="mt-1 block">Recommended</span>
+      )}
+    </label>
   );
 }
 

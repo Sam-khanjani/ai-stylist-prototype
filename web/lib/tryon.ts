@@ -1,5 +1,31 @@
-export type Body = { heightCm: number; weightKg: number | null };
-export type TryOnResult = { size: string | null; image: string | null };
+import type { Body } from "./pose";
+
+export type Fit = "slim" | "regular" | "relaxed";
+export type Profile = { heightCm: number; weightKg: number | null; fit: Fit };
+export type Size = { eu: number; length: "short" | "regular" | "long"; label: string };
+export type SizeAdvice = {
+  jacket: Size;
+  trousers: Size;
+  confidence: "high" | "medium" | "low";
+  reasons: string[];
+  notes: string[];
+  measurements: Record<string, number>;
+};
+export type TryOnResult = { size: SizeAdvice | null; image: string | null };
+
+// Every size in the catalog's EU system (same as the api): regular 44-60, short = N/2, long = 2N-2.
+// US numbers are N-10 for jackets (chest) and N-16 for trousers (waist in inches).
+export function sizeOptions(usOffset: number): Size[] {
+  return (["short", "regular", "long"] as const).flatMap((length) =>
+    [44, 46, 48, 50, 52, 54, 56, 58, 60]
+      .filter((n) => length !== "long" || n > 44)
+      .map((n) => {
+        const eu = { short: n / 2, regular: n, long: 2 * n - 2 }[length];
+        const suffix = { short: "S", regular: "", long: "L" }[length];
+        return { eu, length, label: `EU ${eu} / US ${n - usOffset}${suffix}` };
+      }),
+  );
+}
 
 const MAX_SIDE = 2048;
 
@@ -32,12 +58,25 @@ export async function deletePhoto(photoId: string) {
   await fetch(`/api/tryon/photos?id=${encodeURIComponent(photoId)}`, { method: "DELETE" });
 }
 
-// Size from the photo and body; with a product also the try-on image (a data URL, not stored anywhere)
-export async function tryOn(photoId: string, productId: string | null, body: Body): Promise<TryOnResult> {
+// Without a product: size advice from the photo's measurements and/or height and weight.
+// With a product: the try-on image (a data URL, not stored anywhere).
+export async function tryOn(
+  photoId: string | null,
+  productId: string | null,
+  profile: Profile,
+  body: Body | null,
+): Promise<TryOnResult> {
   const res = await fetch("/api/tryon", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ photo_id: photoId, product_id: productId, height_cm: body.heightCm, weight_kg: body.weightKg }),
+    body: JSON.stringify({
+      photo_id: photoId,
+      product_id: productId,
+      height_cm: profile.heightCm,
+      weight_kg: profile.weightKg,
+      fit: profile.fit,
+      body,
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "The try-on didn't work. Please try again.");

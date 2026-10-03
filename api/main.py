@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 import admin
 import history
+import sizing
 import tryon
 from agent import delete_traces, flush, run_agent, score, stream_agent, summarize
 from catalog import products, section_of
@@ -136,26 +137,31 @@ def delete_photo(photo_id: uuid.UUID, visitor_id: str = Depends(visitor)):
 
 
 class TryOnRequest(BaseModel):
-    photo_id: uuid.UUID
-    product_id: str | None = None  # without a product only the size is suggested
+    photo_id: uuid.UUID | None = None  # without a photo only the height/weight size advice is possible
+    product_id: str | None = None  # with a product: the try-on image instead of the size
     height_cm: int = Field(ge=140, le=220)
     weight_kg: int | None = Field(None, ge=40, le=200)
+    fit: sizing.Fit = "regular"
+    body: sizing.Body | None = None  # pose measurements from the photo, taken in the browser
 
 
 @app.post("/tryon")
 def try_on(req: TryOnRequest, visitor_id: str = Depends(visitor)):
-    image = None
-    if req.product_id:
-        product = next((p for p in products() if p["id"] == req.product_id and p["images"]), None)
-        if not product:
-            raise HTTPException(404, "This product can't be tried on.")
-        try:
-            image = tryon.render(visitor_id, str(req.photo_id), product)
-        except tryon.PhotoMissing:
-            raise HTTPException(404, "Your photo has expired. Please upload it again.")
-        except tryon.Blocked:
-            raise HTTPException(422, "We couldn't create a try-on from this photo. Please try another photo.")
-    return {"size": None, "image": image}  # size estimation comes next
+    if not req.product_id:
+        if not req.body and not req.weight_kg:
+            raise HTTPException(422, "Please add a photo or your weight.")
+        return {"size": sizing.advise(req.height_cm, req.weight_kg, req.fit, req.body), "image": None}
+    if not req.photo_id:
+        raise HTTPException(422, "Please upload a photo first.")
+    product = next((p for p in products() if p["id"] == req.product_id and p["images"]), None)
+    if not product:
+        raise HTTPException(404, "This product can't be tried on.")
+    try:
+        return {"size": None, "image": tryon.render(visitor_id, str(req.photo_id), product)}
+    except tryon.PhotoMissing:
+        raise HTTPException(404, "Your photo has expired. Please upload it again.")
+    except tryon.Blocked:
+        raise HTTPException(422, "We couldn't create a try-on from this photo. Please try another photo.")
 
 
 @app.post("/maintenance/cleanup")
