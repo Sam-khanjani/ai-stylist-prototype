@@ -35,8 +35,22 @@ export type Checked = { reason: string } | { body: Body | null; warnings: string
 
 let landmarker: Promise<PoseLandmarker> | null = null;
 
+// MediaPipe's native code prints its info and warning logs ("INFO: Created TensorFlow Lite…", "W0000 00:00…")
+// through console.error, which the Next dev overlay counts as errors. Drop only those lines.
+const MEDIAPIPE_LOG = /^(INFO: |[IW]\d{4} \d\d:\d\d:\d\d)/;
+let quiet = false;
+function quietMediaPipeLogs() {
+  if (quiet) return;
+  quiet = true;
+  const error = console.error;
+  console.error = (...args: unknown[]) => {
+    if (!MEDIAPIPE_LOG.test(String(args[0]))) error(...args);
+  };
+}
+
 // Called when the user shows interest in try-on, so the ~6 MB download is done by the time a photo is picked
 export function preloadPose() {
+  quietMediaPipeLogs();
   landmarker ??= import("@mediapipe/tasks-vision")
     .then(async ({ FilesetResolver, PoseLandmarker }) =>
       PoseLandmarker.createFromOptions(await FilesetResolver.forVisionTasks(WASM), {

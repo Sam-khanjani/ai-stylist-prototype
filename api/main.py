@@ -138,7 +138,7 @@ def delete_photo(photo_id: uuid.UUID, visitor_id: str = Depends(visitor)):
 
 class TryOnRequest(BaseModel):
     photo_id: uuid.UUID | None = None  # without a photo only the height/weight size advice is possible
-    product_id: str | None = None  # with a product: the try-on image instead of the size
+    product_ids: list[str] = Field([], max_length=tryon.MAX_ITEMS)  # with products: the try-on image instead of the size
     height_cm: int = Field(ge=140, le=220)
     weight_kg: int | None = Field(None, ge=40, le=200)
     fit: sizing.Fit = "regular"
@@ -147,21 +147,24 @@ class TryOnRequest(BaseModel):
 
 @app.post("/tryon")
 def try_on(req: TryOnRequest, visitor_id: str = Depends(visitor)):
-    if not req.product_id:
+    if not req.product_ids:
         if not req.body and not req.weight_kg:
             raise HTTPException(422, "Please add a photo or your weight.")
         return {"size": sizing.advise(req.height_cm, req.weight_kg, req.fit, req.body), "image": None}
     if not req.photo_id:
         raise HTTPException(422, "Please upload a photo first.")
-    product = next((p for p in products() if p["id"] == req.product_id and p["images"]), None)
-    if not product:
-        raise HTTPException(404, "This product can't be tried on.")
+    by_id = {p["id"]: p for p in products()}
+    outfit = [(section_of(by_id[i]), by_id[i]) for i in dict.fromkeys(req.product_ids) if i in by_id]
+    if len(outfit) < len(set(req.product_ids)) or any(s not in tryon.LAYER or not p["images"] for s, p in outfit):
+        raise HTTPException(404, "One of these products can't be tried on.")
+    if tryon.clash([s for s, _ in outfit]):
+        raise HTTPException(422, "These items can't be worn together. Please pick one of them.")
     try:
-        return {"size": None, "image": tryon.render(visitor_id, str(req.photo_id), product)}
+        return {"size": None, "image": tryon.render(visitor_id, str(req.photo_id), outfit)}
     except tryon.PhotoMissing:
         raise HTTPException(404, "Your photo has expired. Please upload it again.")
-    except tryon.Blocked:
-        raise HTTPException(422, "We couldn't create a try-on from this photo. Please try another photo.")
+    except tryon.Blocked as e:
+        raise HTTPException(422, f"We couldn't put the {e} on this photo. Please try another photo or item.")
 
 
 @app.post("/maintenance/cleanup")

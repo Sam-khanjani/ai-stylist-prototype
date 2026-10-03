@@ -58,11 +58,11 @@ export async function deletePhoto(photoId: string) {
   await fetch(`/api/tryon/photos?id=${encodeURIComponent(photoId)}`, { method: "DELETE" });
 }
 
-// Without a product: size advice from the photo's measurements and/or height and weight.
-// With a product: the try-on image (a data URL, not stored anywhere).
+// Without products: size advice from the photo's measurements and/or height and weight.
+// With products (up to two): the try-on image (a data URL, not stored anywhere).
 export async function tryOn(
   photoId: string | null,
-  productId: string | null,
+  productIds: string[],
   profile: Profile,
   body: Body | null,
 ): Promise<TryOnResult> {
@@ -71,7 +71,7 @@ export async function tryOn(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       photo_id: photoId,
-      product_id: productId,
+      product_ids: productIds,
       height_cm: profile.heightCm,
       weight_kg: profile.weightKg,
       fit: profile.fit,

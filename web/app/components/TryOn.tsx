@@ -15,12 +15,28 @@ const BUSY_TEXT = {
   size: "Estimating your size…",
   render: "Dressing you in",
 };
+// Same as the api: up to two items, no accessories (the try-on model doesn't support them), and no two items in the
+// same slot (a suit is jacket and trousers; a coat over a suit or jacket can't be shown)
+const MAX_ITEMS = 2;
+const SLOTS: Record<string, string[]> = {
+  trousers: ["legs"],
+  shorts: ["legs"],
+  shoes: ["feet"],
+  shirts: ["shirt"],
+  knitwear: ["knit"],
+  waistcoats: ["vest"],
+  suits: ["legs", "outer"],
+  jackets: ["outer"],
+  coats: ["outer"],
+};
+const sectionOf = (c: Card) => new URL(c.url).pathname.split("/")[3];
+const clashes = (a: Card, b: Card) => SLOTS[sectionOf(a)].some((slot) => SLOTS[sectionOf(b)].includes(slot));
 const JACKETS = sizeOptions(10);
 const TROUSERS = sizeOptions(16);
 
-// Catalog grid plus the try-on panel: pick a product from the grid, upload a photo in the panel
+// Catalog grid plus the try-on panel: pick up to two items from the grid, upload a photo in the panel
 export default function TryOn({ products }: { products: Card[] }) {
-  const [product, setProduct] = useState<Card | null>(null);
+  const [outfit, setOutfit] = useState<Card[]>([]);
   const [consent, setConsent] = useState(false);
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -66,7 +82,7 @@ export default function TryOn({ products }: { products: Card[] }) {
   async function run(kind: "size" | "render", id = photoId, measured = body) {
     if (!bodyOk) return;
     await work(kind, async () => {
-      const r = await tryOn(id, kind === "render" ? product!.id : null, { heightCm, weightKg, fit }, measured);
+      const r = await tryOn(id, kind === "render" ? outfit.map((p) => p.id) : [], { heightCm, weightKg, fit }, measured);
       if (r.size) {
         setSize(r.size);
         setChosen({});
@@ -113,9 +129,11 @@ export default function TryOn({ products }: { products: Card[] }) {
     setError(null);
   }
 
-  function pick(p: Card) {
-    setProduct(p);
+  // Adds or removes an item; a second item of the same kind (e.g. trousers) replaces the first
+  function toggle(p: Card) {
     setResult(null);
+    if (outfit.some((o) => o.id === p.id)) return setOutfit(outfit.filter((o) => o.id !== p.id));
+    setOutfit([...outfit.filter((o) => sectionOf(o) !== sectionOf(p)), p].slice(-MAX_ITEMS));
     // On small screens the panel sits above the grid, so bring it into view
     if (window.matchMedia("(max-width: 1023px)").matches) panel.current?.scrollIntoView({ behavior: "smooth" });
   }
@@ -126,24 +144,42 @@ export default function TryOn({ products }: { products: Card[] }) {
   return (
     <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
       <ul className="grid flex-1 grid-cols-2 gap-x-2 gap-y-10 md:grid-cols-3 lg:gap-y-16">
-        {products.map((p) => (
-          <li key={p.id}>
-            <ProductCard product={p} />
-            <button
-              onClick={() => pick(p)}
-              className={`mx-1 mt-2 rounded-md border px-3 py-1 text-xs ${
-                product?.id === p.id ? "border-gray-800 bg-gray-800 text-white" : "border-border hover:border-gray-600"
-              }`}
-            >
-              {product?.id === p.id ? "Selected for try-on" : "Try it on"}
-            </button>
-          </li>
-        ))}
+        {products.map((p) => {
+          const added = outfit.some((o) => o.id === p.id);
+          const swaps = outfit.some((o) => sectionOf(o) === sectionOf(p)); // same kind: replaces it
+          const clash = SLOTS[sectionOf(p)] && !added && !swaps && outfit.find((o) => clashes(o, p));
+          const full = !added && !swaps && outfit.length >= MAX_ITEMS;
+          return (
+            <li key={p.id}>
+              <ProductCard product={p} />
+              {SLOTS[sectionOf(p)] && (
+                <button
+                  onClick={() => toggle(p)}
+                  disabled={full || !!clash}
+                  title={clash ? `Can't be worn together with ${clash.name}` : undefined}
+                  className={`mx-1 mt-2 rounded-md border px-3 py-1 text-xs disabled:opacity-40 ${
+                    added ? "border-gray-800 bg-gray-800 text-white" : "border-border hover:border-gray-600"
+                  }`}
+                >
+                  {added
+                    ? "✓ In your try-on"
+                    : clash
+                      ? `Doesn't go with your ${clash.name}`
+                      : full
+                        ? `Try-on is full (${MAX_ITEMS} items)`
+                        : swaps
+                          ? "Swap into try-on"
+                          : "Add to try-on"}
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <aside
         ref={panel}
-        className="order-first shrink-0 scroll-mt-16 space-y-4 rounded-md border border-border p-4 lg:sticky lg:top-16 lg:order-last lg:w-96"
+        className="order-first shrink-0 scroll-mt-16 space-y-4 rounded-md border border-border p-4 lg:sticky lg:top-16 lg:order-last lg:max-h-[calc(100dvh-5rem)] lg:w-96 lg:overflow-y-auto"
       >
         <div>
           <h2 className="text-lg font-medium tracking-heading">Try it on</h2>
@@ -217,7 +253,7 @@ export default function TryOn({ products }: { products: Card[] }) {
             {shown && <img src={shown} alt={shown === result ? "Try-on result" : "Your photo"} className="h-full w-full object-contain" />}
             {busy && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/70 px-6 text-center text-sm">
-                {busy === "render" ? `${BUSY_TEXT.render} ${product?.name}…` : BUSY_TEXT[busy]}
+                {busy === "render" ? `${BUSY_TEXT.render} ${outfit.map((p) => p.name).join(" and ")}…` : BUSY_TEXT[busy]}
               </div>
             )}
             <div className="absolute inset-x-2 top-2 flex justify-between text-xs">
@@ -279,36 +315,38 @@ export default function TryOn({ products }: { products: Card[] }) {
           )}
         </div>
 
-        <div className="flex items-center gap-3 border-t border-border pt-4">
-          {product ? (
-            <>
-              {product.image && <img src={product.image} alt="" className="h-16 w-14 bg-surface object-contain mix-blend-multiply" />}
+        <div className="space-y-2 border-t border-border pt-4">
+          {outfit.map((p) => (
+            <div key={p.id} className="flex items-center gap-3">
+              {p.image && <img src={p.image} alt="" className="h-16 w-14 bg-surface object-contain mix-blend-multiply" />}
               <div className="min-w-0 flex-1 text-sm">
-                <p className="truncate font-medium">{product.name}</p>
-                <p className="text-text-secondary">{formatPrice(product.price, product.currency)}</p>
+                <p className="truncate font-medium">{p.name}</p>
+                <p className="text-text-secondary">{formatPrice(p.price, p.currency)}</p>
               </div>
-              <button
-                onClick={() => {
-                  setProduct(null);
-                  setResult(null);
-                }}
-                className="text-xs text-text-secondary hover:text-text"
-              >
-                Clear
+              <button onClick={() => toggle(p)} className="text-xs text-text-secondary hover:text-text">
+                Remove
               </button>
-            </>
-          ) : (
-            <p className="text-sm text-text-secondary">Pick a product with “Try it on” in the catalog.</p>
+            </div>
+          ))}
+          {outfit.length < MAX_ITEMS && (
+            <p className="text-sm text-text-secondary">
+              {outfit.length
+                ? "Add one more item to try them together, e.g. trousers with a knit."
+                : `Add up to ${MAX_ITEMS} items with “Add to try-on” in the catalog.`}
+            </p>
           )}
         </div>
 
-        <button
-          onClick={() => run("render")}
-          disabled={!photoId || !product || !bodyOk || !!busy}
-          className="w-full rounded-md bg-gray-800 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-40"
-        >
-          {!photoId ? "Upload a photo first" : !product ? "Pick a product first" : "Try it on"}
-        </button>
+        {/* The panel scrolls on its own on desktop (it's sticky); keep the main action in view at its bottom */}
+        <div className="bg-background lg:sticky lg:-bottom-4 lg:-mx-4 lg:-mb-4 lg:px-4 lg:pt-3 lg:pb-4">
+          <button
+            onClick={() => run("render")}
+            disabled={!photoId || !outfit.length || !bodyOk || !!busy}
+            className="w-full rounded-md bg-gray-800 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-40"
+          >
+            {!photoId ? "Upload a photo first" : !outfit.length ? "Add an item first" : "Try it on"}
+          </button>
+        </div>
       </aside>
     </div>
   );
