@@ -128,43 +128,10 @@ resource "google_storage_bucket" "catalog_images" {
   depends_on = [google_project_service.apis]
 }
 
-resource "google_storage_bucket" "user_photos" {
-  name                        = "${var.project_id}-user-photos"
-  location                    = var.region
-  uniform_bucket_level_access = true
-  public_access_prevention    = "enforced"
-
-  lifecycle_rule {
-    condition {
-      age = 1
-    }
-    action {
-      type = "Delete"
-    }
-  }
-
-  # The browser uploads try-on photos directly with a signed URL
-  cors {
-    origin          = concat(google_cloud_run_v2_service.web.urls, ["http://localhost:3000"])
-    method          = ["PUT"]
-    response_header = ["Content-Type", "x-goog-content-length-range"]
-    max_age_seconds = 3600
-  }
-
-  depends_on = [google_project_service.apis]
-}
-
-# Cloud Run has no key file, so the api signs upload URLs through the IAM API as itself
-resource "google_service_account_iam_member" "api_signs_urls" {
-  service_account_id = google_service_account.api.name
-  role               = "roles/iam.serviceAccountTokenCreator"
-  member             = google_service_account.api.member
-}
-
 resource "google_storage_bucket_iam_member" "api_buckets" {
+  # Try-on photos are never stored, so the catalog is the only bucket the api uses
   for_each = {
     catalog = google_storage_bucket.catalog_images.name
-    photos  = google_storage_bucket.user_photos.name
   }
   bucket = each.value
   role   = "roles/storage.objectAdmin"
@@ -245,16 +212,10 @@ resource "google_cloud_run_v2_service" "api" {
         value = "/data/raw/products.jsonl"
       }
 
-      # By name, not reference: the bucket's CORS already depends on web, which depends on this service
-      env {
-        name  = "PHOTOS_BUCKET"
-        value = "${var.project_id}-user-photos"
-      }
-
       # Chat history retention in days; keep in sync with the text in the chat widget
       env {
         name  = "CHAT_RETENTION_DAYS"
-        value = "1"
+        value = "30"
       }
 
       env {

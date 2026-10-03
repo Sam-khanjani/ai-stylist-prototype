@@ -6,10 +6,9 @@ import { formatPrice, type Card } from "@/lib/card";
 import { checkPhoto, preloadPose, type Body } from "@/lib/pose";
 import {
   completeTheLook,
-  deletePhoto,
   sizeOptions,
   tryOn,
-  uploadPhoto,
+  preparePhoto,
   type Fit,
   type LookItem,
   type SizeAdvice,
@@ -20,7 +19,6 @@ const HEIGHT = { min: 140, max: 220 };
 const WEIGHT = { min: 40, max: 200 };
 const BUSY_TEXT = {
   check: "Checking your photo…",
-  upload: "Uploading your photo…",
   size: "Estimating your size…",
   render: "Dressing you in",
 };
@@ -43,7 +41,7 @@ const clashes = (a: Card, b: Card) => SLOTS[sectionOf(a)].some((slot) => SLOTS[s
 const JACKETS = sizeOptions(10);
 const TROUSERS = sizeOptions(16);
 
-// Catalog grid plus the try-on panel: pick up to two items from the grid, upload a photo in the panel
+// Catalog grid plus the try-on panel: pick up to two items from the grid, add a photo in the panel
 export default function TryOn({ products }: { products: Card[] }) {
   const [outfit, setOutfit] = useState<Card[]>([]);
   const [look, setLook] = useState<LookItem[] | null>([]); // null while loading
@@ -51,7 +49,7 @@ export default function TryOn({ products }: { products: Card[] }) {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
-  const [photoId, setPhotoId] = useState<string | null>(null);
+  const [photoData, setPhotoData] = useState<string | null>(null); // the prepared JPEG, only in this browser
   const [preview, setPreview] = useState<string | null>(null);
   const [fit, setFit] = useState<Fit>("regular");
   const [body, setBody] = useState<Body | null>(null);
@@ -103,10 +101,10 @@ export default function TryOn({ products }: { products: Card[] }) {
     }
   }
 
-  async function run(kind: "size" | "render", id = photoId, measured = body) {
+  async function run(kind: "size" | "render", data = photoData, measured = body) {
     if (!bodyOk) return;
     await work(kind, async () => {
-      const r = await tryOn(id, kind === "render" ? outfit.map((p) => p.id) : [], { heightCm, weightKg, fit }, measured);
+      const r = await tryOn(data, kind === "render" ? outfit.map((p) => p.id) : [], { heightCm, weightKg, fit }, measured);
       if (r.size) {
         setSize(r.size);
         setChosen({});
@@ -126,26 +124,24 @@ export default function TryOn({ products }: { products: Card[] }) {
     setSize(null);
     setResult(null);
     setWarnings([]);
-    let id: string | null = null;
+    let data: string | null = null;
     let measured: Body | null = null;
     await work("check", async () => {
       const checked = await checkPhoto(file);
       if ("reason" in checked) throw new Error(checked.reason);
       measured = checked.body;
       setWarnings(checked.warnings);
-      setBusy("upload");
-      id = await uploadPhoto(file);
-      setPhotoId(id);
+      data = await preparePhoto(file);
+      setPhotoData(data);
       setBody(measured);
     });
-    if (!id) return setPhoto(null);
-    if (measured || weightKg) await run("size", id, measured); // otherwise the size needs a weight first
+    if (!data) return setPhoto(null);
+    if (measured || weightKg) await run("size", data, measured); // otherwise the size needs a weight first
   }
 
   function removePhoto() {
-    if (photoId) deletePhoto(photoId); // the bucket would delete it within a day anyway
     setPhoto(null);
-    setPhotoId(null);
+    setPhotoData(null);
     setBody(null);
     setSize(null);
     setWarnings([]);
@@ -245,8 +241,9 @@ export default function TryOn({ products }: { products: Card[] }) {
                 className="mt-0.5"
               />
               <span>
-                I agree that my photo is used only to suggest a size and create the try-on image. It is stored privately,
-                never shared, and deleted automatically after one day, or right away with “Delete photo”.
+                I agree that my photo is used only to suggest my size and create the try-on image. It is never saved
+                anywhere: my size is worked out in this browser, and for a try-on the photo is sent encrypted to Google&apos;s
+                AI service in the EU only to create the image, then discarded.
               </span>
             </label>
             <label
@@ -266,7 +263,7 @@ export default function TryOn({ products }: { products: Card[] }) {
                 onChange={(e) => choosePhoto(e.target.files?.[0])}
                 className="sr-only"
               />
-              <span className="font-medium">Upload a full-body front photo</span>
+              <span className="font-medium">Add a full-body front photo</span>
               <span className="text-xs text-text-secondary">
                 {!heightOk
                   ? "Enter your height first."
@@ -294,13 +291,20 @@ export default function TryOn({ products }: { products: Card[] }) {
               )}
               <button
                 onClick={removePhoto}
-                disabled={busy === "check" || busy === "upload"}
+                disabled={busy === "check"}
                 className="rounded bg-white/90 px-2 py-1"
               >
-                Delete photo
+                Remove photo
               </button>
             </div>
           </div>
+        )}
+
+        {photo && (
+          <p className="text-xs text-text-secondary">
+            Your photo isn&apos;t saved anywhere: it stays in this browser and is only sent, encrypted, to create a try-on
+            image, then discarded.
+          </p>
         )}
 
         {/* Right under the photo, so the user sees why a photo was rejected or what could be better */}
@@ -330,7 +334,7 @@ export default function TryOn({ products }: { products: Card[] }) {
           >
             {busy === "size"
               ? "Estimating…"
-              : body || photoId
+              : body || photoData
                 ? size
                   ? "Update my size"
                   : "Get my size"
@@ -338,7 +342,7 @@ export default function TryOn({ products }: { products: Card[] }) {
           </button>
           {!body && !weightKg && (
             <p className="text-xs text-text-secondary">
-              {photoId ? "Add your weight to get your size." : "No photo? Enter your height and weight to get a size."}
+              {photoData ? "Add your weight to get your size." : "No photo? Enter your height and weight to get a size."}
             </p>
           )}
         </div>
@@ -388,10 +392,10 @@ export default function TryOn({ products }: { products: Card[] }) {
         <div className="bg-background lg:sticky lg:-bottom-4 lg:-mx-4 lg:-mb-4 lg:px-4 lg:pt-3 lg:pb-4">
           <button
             onClick={() => run("render")}
-            disabled={!photoId || !outfit.length || !bodyOk || !!busy}
+            disabled={!photoData || !outfit.length || !bodyOk || !!busy}
             className="w-full rounded-md bg-gray-800 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-40"
           >
-            {!photoId ? "Upload a photo first" : !outfit.length ? "Add an item first" : "Try it on"}
+            {!photoData ? "Add a photo first" : !outfit.length ? "Add an item first" : "Try it on"}
           </button>
         </div>
       </aside>

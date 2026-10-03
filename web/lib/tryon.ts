@@ -30,8 +30,9 @@ export function sizeOptions(usOffset: number): Size[] {
 
 const MAX_SIDE = 2048;
 
-// Re-encoding in the browser drops EXIF data such as the GPS location, and shrinks phone photos before upload
-async function toJpeg(file: File): Promise<Blob> {
+// The photo is never saved anywhere. It stays in this browser, re-encoded as a JPEG data URL: that drops EXIF data
+// such as the GPS location and shrinks phone photos. Only a try-on request sends it, and the api keeps it in memory.
+export async function preparePhoto(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
@@ -39,30 +40,13 @@ async function toJpeg(file: File): Promise<Blob> {
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read this photo."))), "image/jpeg", 0.9),
-  );
+  return canvas.toDataURL("image/jpeg", 0.9);
 }
 
-// Uploads straight to the private bucket with a signed URL from the api; returns the photo id
-export async function uploadPhoto(file: File): Promise<string> {
-  const jpeg = await toJpeg(file);
-  const res = await fetch("/api/tryon/photos", { method: "POST" });
-  if (!res.ok) throw new Error("Couldn't prepare the upload. Please try again.");
-  const { photo_id, upload_url, headers } = await res.json();
-  const put = await fetch(upload_url, { method: "PUT", headers, body: jpeg });
-  if (!put.ok) throw new Error("The photo upload failed. Please try again.");
-  return photo_id;
-}
-
-export async function deletePhoto(photoId: string) {
-  await fetch(`/api/tryon/photos?id=${encodeURIComponent(photoId)}`, { method: "DELETE" });
-}
-
-// Without products: size advice from the photo's measurements and/or height and weight.
+// Without products: size advice from the photo's measurements and/or height and weight (the photo isn't sent).
 // With products (up to two): the try-on image (a data URL, not stored anywhere).
 export async function tryOn(
-  photoId: string | null,
+  photo: string | null,
   productIds: string[],
   profile: Profile,
   body: Body | null,
@@ -71,7 +55,7 @@ export async function tryOn(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      photo_id: photoId,
+      photo: productIds.length ? photo : null,
       product_ids: productIds,
       height_cm: profile.heightCm,
       weight_kg: profile.weightKg,

@@ -1,26 +1,18 @@
-"""Try it on: photo uploads and the virtual try-on model.
+"""Try it on: the virtual try-on model.
 
-The browser uploads straight to the private user-photos bucket with a short-lived signed URL. Each photo sits
-under the visitor's id, and the bucket deletes everything after a day. The try-on image is returned inline and
-never stored.
+The photo is never saved: it comes with the try-on request, stays in memory while the models dress it, and is gone
+when the response is sent. The try-on image is returned inline and isn't stored either.
 """
 import base64
+import binascii
 import os
-import uuid
-from datetime import timedelta
 from functools import cache
 
-import google.auth
 import httpx
 from google import genai
-from google.api_core.exceptions import NotFound
-from google.auth.transport.requests import Request
-from google.cloud import storage
 from google.genai import types
 
-BUCKET = os.getenv("PHOTOS_BUCKET", "ai-stylist-proto-user-photos")
-MAX_BYTES = 10 * 1024 * 1024  # also the model's limit per image
-URL_MINUTES = 10
+MAX_BYTES = 10 * 1024 * 1024  # the model's limit per image
 MODEL = "virtual-try-on-001"
 LOCATION = os.getenv("TRYON_LOCATION", "europe-west4")
 # An outer layer (jacket, suit, waistcoat, coat) over anything already tried on: the try-on model repaints the whole
@@ -39,10 +31,6 @@ LAYER_PROMPT = (
     "Keep the person's face, hair, body shape, pose, the rest of their clothing and the background unchanged. "
     "Return only the edited photo."
 )
-
-
-class PhotoMissing(Exception):
-    """Never uploaded, deleted, or removed by the bucket's one-day rule."""
 
 
 class Blocked(Exception):
@@ -66,39 +54,15 @@ def clash(sections: list[str]) -> bool:
     return len(taken) != len(set(taken))
 
 
-@cache
-def bucket() -> storage.Bucket:
-    return storage.Client().bucket(BUCKET)
-
-
-def blob(visitor_id: str, photo_id: str) -> storage.Blob:
-    return bucket().blob(f"{visitor_id}/{photo_id}.jpg")
-
-
-def upload_url(visitor_id: str) -> dict:
-    """A PUT URL for one JPEG of at most MAX_BYTES; the browser must send exactly these headers."""
-    photo_id = str(uuid.uuid4())
-    headers = {"Content-Type": "image/jpeg", "x-goog-content-length-range": f"0,{MAX_BYTES}"}
-    # Cloud Run has no key file, so the URL is signed through the IAM API with an access token.
-    # Locally the credentials are a user's, which can't sign: PHOTO_SIGNER names the service account to sign as.
-    credentials, _ = google.auth.default()
-    credentials.refresh(Request())
-    url = blob(visitor_id, photo_id).generate_signed_url(
-        version="v4",
-        method="PUT",
-        expiration=timedelta(minutes=URL_MINUTES),
-        headers=headers,
-        service_account_email=os.getenv("PHOTO_SIGNER") or credentials.service_account_email,
-        access_token=credentials.token,
-    )
-    return {"photo_id": photo_id, "upload_url": url, "headers": headers}
-
-
-def delete(visitor_id: str, photo_id: str):
+def photo_bytes(data_url: str) -> bytes:
+    """The photo from the request (a JPEG or PNG data URL), checked before it goes to the model."""
     try:
-        blob(visitor_id, photo_id).delete()
-    except NotFound:
-        pass  # never uploaded, or already removed by the lifecycle rule
+        data = base64.b64decode(data_url.split(",", 1)[-1], validate=True)
+    except (binascii.Error, ValueError):
+        raise ValueError("not base64")
+    if len(data) > MAX_BYTES or not (data.startswith(b"\xff\xd8") or data.startswith(b"\x89PNG")):
+        raise ValueError("not a JPEG or PNG under 10 MB")
+    return data
 
 
 @cache
@@ -125,12 +89,8 @@ def garment(product: dict) -> bytes:
     return httpx.get(url, timeout=20, follow_redirects=True).raise_for_status().content
 
 
-def render(visitor_id: str, photo_id: str, outfit: list[tuple[str, dict]]) -> str:
-    """The visitor wearing the outfit, as a JPEG data URL. `outfit` is (section, product) pairs."""
-    try:
-        person = blob(visitor_id, photo_id).download_as_bytes()
-    except NotFound:
-        raise PhotoMissing
+def render(person: bytes, outfit: list[tuple[str, dict]]) -> str:
+    """The person wearing the outfit, as a data URL. `outfit` is (section, product) pairs."""
     # One model call per item: the try-on model takes one product image per request
     worn: set[str] = set()
     for section, product in sorted(outfit, key=lambda item: LAYER[item[0]]):

@@ -249,7 +249,7 @@ export default function ChatWidget() {
 
         {showHistory && (
           <div className="flex-1 overflow-y-auto px-4 py-4">
-            <h3 className="text-xs text-text-secondary">Your chats from the last 24 hours</h3>
+            <h3 className="text-xs text-text-secondary">Your chats from the last 30 days</h3>
             <ul className="mt-3 divide-y divide-border">
               {conversations?.map((c) => (
                 <li key={c.id}>
@@ -373,7 +373,7 @@ export default function ChatWidget() {
           </button>
         </form>
         <p className="px-3 pb-2 text-[10px] leading-4 text-text-secondary">
-          AI answers can be wrong. Chats are saved for 24 hours in this browser so you can continue later; delete them
+          AI answers can be wrong. Chats are saved for 30 days in this browser so you can continue later; delete them
           anytime under History. Please don&apos;t share personal details. Unofficial demo, not affiliated with Suitsupply.
         </p>
       </section>

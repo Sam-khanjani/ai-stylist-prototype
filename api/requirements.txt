@@ -6,7 +6,6 @@ langchain
 langchain-google-genai
 langfuse
 google-genai
-google-cloud-storage
 httpx
 psycopg[binary,pool]
 pgvector

@@ -25,7 +25,3 @@ output "db_connection_name" {
 output "catalog_bucket" {
   value = google_storage_bucket.catalog_images.name
 }
-
-output "photos_bucket" {
-  value = google_storage_bucket.user_photos.name
-}
