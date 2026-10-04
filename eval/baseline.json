@@ -1,25 +1,25 @@
 {
- "run": "eval-20261004-182931",
- "judge": false,
+ "run": "eval-20261004-183754",
+ "judge": true,
  "summary": {
   "questions": 53,
-  "answer_accuracy": 1.0,
+  "answer_accuracy": 0.981,
   "errors": 0,
   "metrics": {
    "intent_accuracy": 1.0,
    "route_accuracy": 1.0,
-   "fallback_accuracy": 1.0,
+   "fallback_accuracy": 0.981,
    "retrieval_recall": 1.0,
    "citation_recall": 1.0,
    "citation_validity": 1.0,
    "fact_recall": 1.0,
-   "product_accuracy": 1.0,
+   "product_accuracy": 0.941,
    "no_repeat_greeting": 1.0,
-   "asks_when_unclear": 1.0,
-   "retrieval_mrr": 0.92,
-   "faithfulness": null,
-   "citation_precision": null,
-   "answer_relevance": null
+   "asks_when_unclear": 0.889,
+   "retrieval_mrr": 0.927,
+   "faithfulness": 0.858,
+   "citation_precision": 0.963,
+   "answer_relevance": 1.0
   },
   "categories": {
    "alterations": 1.0,
@@ -39,16 +39,15 @@
    "sizing": 1.0,
    "small talk": 1.0,
    "stores": 1.0,
-   "style": 1.0,
+   "style": 0.889,
    "sustainability": 1.0,
    "terms": 1.0
   },
-  "latency_avg": 2.26,
-  "latency_p95": 4.42,
+  "latency_avg": 6.67,
+  "latency_p95": 10.79,
   "flaky": [
-   "g47",
-   "g48",
-   "g53"
+   "g36",
+   "g51"
   ]
  },
  "results": [
@@ -56,9 +55,9 @@
    "id": "g01",
    "category": "returns",
    "question": "What is your return policy?",
-   "reply": "Hello! You can return your items for free within 30 days of delivery or your store purchase date [1]. Just make sure the items are unworn, unaltered, have their original tags attached, and are returned in the same country where you purchased them [1]. \n\nWould you like any help with starting your return today?",
+   "reply": "Hello! You can return your items for free within 30 days of delivery or your store purchase date [1]. Just make sure the items are unworn, unaltered, have their original tags attached, and are being returned in the same country where you purchased them [1]. \n\nWould you like help with anything else today?",
    "route": "policy",
-   "latency": 3.53,
+   "latency": 6.41,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -70,21 +69,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "a58ea3c3e5b717391544e7fef4a336df"
+   "trace_id": "d0437f33f25785f20beeb76513504028"
   },
   {
    "id": "g02",
    "category": "returns",
    "question": "How long does it take to get my refund once my return arrives at the warehouse?",
-   "reply": "Hello! Once your return arrives at our warehouse, it takes up to 5 business days for return processing, and refunds are then issued 1–2 business days after processing [1]. \n\nIs there anything else I can help you with today?",
+   "reply": "Hello! Once your return arrives at our warehouse, return processing takes up to 5 business days, and refunds are issued 1–2 business days after processing [1]. \n\nLet me know if there is anything else I can help you with!",
    "route": "policy",
-   "latency": 2.04,
+   "latency": 4.87,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -96,21 +99,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "ead02ef749137c2f20c2203f3df9b643"
+   "trace_id": "a5b5f1ba88345ebad07176916c5ce27a"
   },
   {
    "id": "g03",
    "category": "returns",
    "question": "Do I have to pay for return shipping?",
-   "reply": "Hello! No, return shipping is completely free of charge [1][4]. \n\nIs there anything else I can assist you with today?",
+   "reply": "Hello! No, return shipping is completely free of charge [1]. \n\nIs there anything else I can help you with today?",
    "route": "policy",
-   "latency": 1.98,
+   "latency": 3.74,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -122,21 +129,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "b1ab1348de27672d05b7572db957f8af"
+   "trace_id": "437c3ff8f2450788cac13e92c6fd2a77"
   },
   {
    "id": "g04",
    "category": "returns",
    "question": "Can someone come and collect my parcel for a return?",
-   "reply": "Hello! Yes, you can schedule a pickup on the UPS website using your return label tracking number by following the instructions under “Need a collection?” [1]. \n\nWould you like any more details about making your return?",
+   "reply": "Yes, you can schedule a pickup on the UPS website using your return label tracking number and following the instructions under “Need a collection?” [1]. \n\nWould you like any help with registering your return online?",
    "route": "policy",
-   "latency": 1.95,
+   "latency": 5.6,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -148,21 +159,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "b849fe22e595bba035079205250bac21"
+   "trace_id": "c177be05ab3664b286286456696f205f"
   },
   {
    "id": "g05",
    "category": "returns",
    "question": "Is there a longer return period around Christmas?",
-   "reply": "Yes, we do offer an extended 60-day return period for any purchases made between November 1st and December 25th [1]. \n\nWould you like any more information regarding our return process?",
+   "reply": "Hello! Yes, for purchases made between November 1st and December 25th, we offer an extended 60-day return period [1]. \n\nWould you like any help with starting a return today?",
    "route": "policy",
-   "latency": 1.91,
+   "latency": 4.93,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -174,21 +189,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "30864896d8391bd0f1f75322b3b842d7"
+   "trace_id": "1697ab94caaae27e688228f93bc09b94"
   },
   {
    "id": "g06",
    "category": "refunds",
    "question": "I paid with a gift card. How will I be refunded if I return the item?",
-   "reply": "Hello! If you return an item purchased with a gift card, the credit will be applied to a new gift card [1][2]. \n\nIs there anything else I can help you with today?",
+   "reply": "Hello! If you return an item purchased with a gift card, the credit will be applied to a new gift card [1][2]. \n\nPlease let me know if you need help with anything else!",
    "route": "policy",
-   "latency": 1.9,
+   "latency": 4.65,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -200,21 +219,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "a0bda20483d25fe522a4fff18502f16b"
+   "trace_id": "09cef2bb36d60abcb71b76934f3c0dbf"
   },
   {
    "id": "g07",
    "category": "returns",
    "question": "Can I return an online order in a store?",
-   "reply": "Yes, you can return an online order in any store located in the same country where it was purchased [1]. \n\nWould you like help finding a store near you?",
+   "reply": "Hello! Yes, you can return an online order in any store located in the same country where it was purchased [1]. \n\nWould you like help finding a store near you?",
    "route": "policy",
-   "latency": 1.85,
+   "latency": 4.42,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -226,21 +249,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "0865aa7b3671445d46b6c1ce370e0b52"
+   "trace_id": "15319821902498670893067423039ee8"
   },
   {
    "id": "g08",
    "category": "delivery",
    "question": "How long does delivery to Germany take?",
-   "reply": "Hello! Delivery to Germany typically takes 1-5 business days [1]. \n\nWould you like to know about delivery times for any other locations?",
+   "reply": "Hello! Delivery to Germany typically takes 1 to 5 business days [1]. \n\nWould you like to know about delivery times for any other locations?",
    "route": "policy",
-   "latency": 1.72,
+   "latency": 3.84,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -252,21 +279,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "eef91c2ac9dde036cc212df5b5dc8dde"
+   "trace_id": "08ffe26f99987c4b29355ca3c2bbbbcd"
   },
   {
    "id": "g09",
    "category": "delivery",
    "question": "Do you charge for shipping?",
-   "reply": "Hello! No, Suitsupply offers free worldwide shipping [2]. \n\nWould you like to know more about our delivery times?",
+   "reply": "Hello! No, Suitsupply offers free worldwide shipping [2]. \n\nLet me know if you have any other questions about our delivery or products!",
    "route": "policy",
-   "latency": 1.68,
+   "latency": 3.73,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -278,21 +309,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "7b684519ff74cd49db6948896f0d1f0f"
+   "trace_id": "52504e31ba46ab6dec1f18c59d0aa1fe"
   },
   {
    "id": "g10",
    "category": "payments",
    "question": "Which payment methods do you accept?",
-   "reply": "Hello! We gladly accept payment via Visa, Mastercard, American Express, PayPal, Apple Pay, Google Pay, Klarna, as well as additional local payment methods [1]. \n\nPlease let me know if you need help with anything else!",
+   "reply": "Hello! We accept payments via Visa, Mastercard, American Express, PayPal, Apple Pay, Google Pay, Klarna, and additional local payment methods [1]. \n\nPlease let me know if you need help with anything else!",
    "route": "policy",
-   "latency": 1.83,
+   "latency": 4.06,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -304,21 +339,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "fada08acb1c39050fe59d5dc8dde7ee3"
+   "trace_id": "2744dc59fa6a85c7709f574a50c20bc5"
   },
   {
    "id": "g11",
    "category": "gift cards",
    "question": "Do your gift cards expire?",
-   "reply": "Hello! I am happy to help. No, our gift cards do not have an expiration date [1]. \n\nWould you like to know anything else about our gift cards?",
+   "reply": "Hello! No, our gift cards do not have an expiration date [1]. \n\nIs there anything else I can help you with today?",
    "route": "policy",
-   "latency": 2.11,
+   "latency": 4.74,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -330,21 +369,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "a62274d1839d3f174e76414cc8aaeb08"
+   "trace_id": "0fc3588cc459d49dee6a94ddcfb25524"
   },
   {
    "id": "g12",
    "category": "alterations",
    "question": "How long do alterations take?",
-   "reply": "Hello! Alterations generally take anywhere from 30 minutes to 3 days, all done by our expert in-store tailors [1]. \n\nWould you like to know more about the types of alterations we offer?",
+   "reply": "Hello! Alterations typically take anywhere from 30 minutes to 3 days, all handled by our expert in-store tailors [1]. \n\nIs there anything else I can help you with today?",
    "route": "policy",
-   "latency": 1.73,
+   "latency": 5.03,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -356,21 +399,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "5a900a20153cc4506bdc07c9669bcc25"
+   "trace_id": "5380bcff332c0f5c85ca5c073e7b4237"
   },
   {
    "id": "g13",
    "category": "alterations",
    "question": "How much does it cost to shorten my trousers?",
-   "reply": "Hello! Shortening or lengthening trousers costs €12 [1]. \n\nWould you like help with any other alteration prices today?",
+   "reply": "Hello! Shortening or lengthening trousers costs €12 [1]. \n\nWould you like any help with finding the right fit for your trousers?",
    "route": "policy",
-   "latency": 2.04,
+   "latency": 4.56,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -382,21 +429,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "6f2d7512fbe93ec80417967402e328c6"
+   "trace_id": "32ec633558d1b810f6efea7aa600d250"
   },
   {
    "id": "g14",
    "category": "appointments",
    "question": "Do I need an appointment to visit a store?",
-   "reply": "Hello! While walk-ins are always welcome, we do encourage you to make an appointment so that there is minimal wait time and a dedicated associate is available to help you [1][3]. \n\nWould you like help booking your appointment today?",
+   "reply": "Hello! While walk-ins are always welcome, we do encourage you to make an appointment so you have minimal wait time and a dedicated associate to help you [1][3]. \n\nWould you like help finding your nearest store or booking an appointment?",
    "route": "policy",
-   "latency": 1.88,
+   "latency": 5.19,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -408,21 +459,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "6a5ddd550119fa83a4c28d4bf34827ee"
+   "trace_id": "d2096f0658503c0d647053dd23b004d4"
   },
   {
    "id": "g15",
    "category": "sizing",
    "question": "What is Size Passport?",
-   "reply": "Hello! The Size Passport is a handy tool that saves your measurements so you can easily order products in the best-fitting size [1][2]. It allows eligible pieces to be tailored to your fit before they arrive [4]! \n\nWould you like to know how to use it on your shopping journey?",
+   "reply": "Hello! Size Passport is a handy tool that saves your measurements so you can order products in the best-fitting size [1][2]. \n\nIs there anything else I can help you with today?",
    "route": "policy",
-   "latency": 1.87,
+   "latency": 4.36,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -434,21 +489,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "88fd4d6199148029a9ad03b701faff2e"
+   "trace_id": "bbc2ea5aab2855fa78ee9bb607abfd87"
   },
   {
    "id": "g16",
    "category": "custom made",
    "question": "How long does it take to receive a Custom Made suit?",
-   "reply": "Hello! It takes about 3-4 weeks to get your Custom Made suit designed, crafted, and delivered [1]. \n\nWould you like some help designing your custom suit today?",
+   "reply": "Hello! A Custom Made suit typically takes 3-4 weeks to be crafted and delivered [1]. \n\nWould you like help designing your custom suit online or finding a store to get fitted [1]?",
    "route": "policy",
-   "latency": 1.68,
+   "latency": 5.09,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -460,21 +519,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "159334ee791a3a5873185de44978eb86"
+   "trace_id": "e3ff06e2d026ea9a5bf545c9eaf14988"
   },
   {
    "id": "g17",
    "category": "contact",
    "question": "What is the customer service phone number in the Netherlands?",
-   "reply": "Hello! The customer service phone number for the Netherlands is 0800 020 6227 [1][3]. \n\nPlease let me know if there is anything else I can assist you with today!",
+   "reply": "Hello! The customer service phone number for the Netherlands is 0800 020 6227 [1][3]. \n\nIs there anything else I can help you with today?",
    "route": "policy",
-   "latency": 1.64,
+   "latency": 4.09,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -486,13 +549,17 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "0390d24ba9b53b740d9038a42fa22cd7"
+   "trace_id": "591a27d90c128901e5d61e304beba6b2"
   },
   {
    "id": "g18",
@@ -500,7 +567,7 @@
    "question": "Can I reach customer service on WhatsApp?",
    "reply": "Hello! Yes, you can easily contact our customer service via WhatsApp at +31 655 110 516 [1][2]. \n\nWould you like me to help you with anything else today?",
    "route": "policy",
-   "latency": 1.91,
+   "latency": 4.35,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -512,21 +579,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "86ec912dedb1c82140cb87bc3c09c02c"
+   "trace_id": "e469fafd6c993c4f655dbdc80e09eca9"
   },
   {
    "id": "g19",
    "category": "sustainability",
    "question": "Which natural fibers do you use in your products?",
-   "reply": "Hello! Our products are crafted using natural fibers, and the most common ones we use are sheep wool, cotton, linen, cashmere, and silk [1]. \n\nWould you like to know more about a specific fabric?",
+   "reply": "Hello! We craft our products using natural fibers, keeping synthetics to a minimum [1]. The most common materials we use are sheep wool, cotton, linen, cashmere, and silk [1]. \n\nWould you like to know more about a specific fabric?",
    "route": "policy",
-   "latency": 1.97,
+   "latency": 4.19,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -538,21 +609,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "aeea815a0453af7da99fd0a41abe0759"
+   "trace_id": "7f3b8a031cca2ecec4d7d1dd394a6f08"
   },
   {
    "id": "g20",
    "category": "stores",
    "question": "What time does the Amsterdam store open on Sunday?",
-   "reply": "Hello! On Sundays, the Suitsupply store in Amsterdam is open from 11:00 to 18:00 [1]. \n\nLet me know if you need help with anything else!",
+   "reply": "Hello! The Suitsupply store in Amsterdam opens at 11:00 on Sundays [1]. \n\nWould you like to know the address or phone number for that store as well?",
    "route": "policy",
-   "latency": 1.74,
+   "latency": 6.11,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -564,21 +639,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "e30001725985d8ca760af7292db8f601"
+   "trace_id": "870a0e12d0198f36cb4c0be51bc06e95"
   },
   {
    "id": "g21",
    "category": "stores",
    "question": "Where is your store in Rotterdam?",
-   "reply": "Hello! The Suitsupply store in Rotterdam is located at Rodezand 9-13, 3011 AM Rotterdam [1]. \n\nPlease let me know if there is anything else I can assist you with today!",
+   "reply": "Hello! The Suitsupply store in Rotterdam is located at Rodezand 9-13, 3011 AM Rotterdam [1]. \n\nWould you like to know anything about their opening hours or contact details?",
    "route": "policy",
-   "latency": 1.84,
+   "latency": 4.71,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -590,21 +669,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "e9efd7c993c1becb3f3eb93d9c60b9b5"
+   "trace_id": "8742aea807ec07b382230aa21789e1b5"
   },
   {
    "id": "g22",
    "category": "stores",
    "question": "Which stores do you have in Belgium?",
-   "reply": "Hello! In Belgium, we have stores located in Antwerpen, Brussel, and Hasselt [1][2][3]. \n\nWould you like to know the opening hours or address for one of these locations?",
+   "reply": "Hello! We have three stores in Belgium: in Antwerpen at Frankrijklei 123A, in Brussel at Marnixlaan 23, and in Hasselt at Kapelstraat 44 [1][2][3]. \n\nWould you like to know the opening hours for any of these locations?",
    "route": "policy",
-   "latency": 1.81,
+   "latency": 4.48,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -616,21 +699,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "7e3d6b24c86f01da46c949226394d648"
+   "trace_id": "564a5b0c928aa95fa2c85701078897e5"
   },
   {
    "id": "g23",
    "category": "products",
    "question": "Show me a navy suit under 700 euros",
-   "reply": "Hello! I would be delighted to help you find a wonderful navy suit within your budget. Here are a few fantastic options:\n\nThe Tailored Fit Milano Suit [1] is crafted from pure linen in navy herringbone with a padded shoulder and wide-leg straight trousers, priced at EUR 599. \n\nThe Tailored Fit Havana Suit [2] comes in pure S110's wool, featuring a natural shoulder and slim-leg trousers for a timeless style, priced at EUR 548. \n\nThe Perennial Tailored Fit Havana Suit [3] is made of pure tropical wool with a fitted silhouette and natural shoulders, priced at EUR 398. \n\nFinally, the Relaxed Fit Roma Suit [6] is a pure wool navy herringbone suit cut to a relaxed Roma fit with a wider shoulder, fuller chest, and double-pleated high-rise trousers, priced at EUR 649.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with choosing the right size for your new suit?",
+   "reply": "Hello! I would be delighted to help you find the perfect navy suit. Here are a few wonderful options under 700 euros from our collection:\n\nFor a lightweight and breathable choice, the Tailored Fit Milano Suit in pure linen [1] is priced at EUR 599 and features a tailored fit with a padded shoulder and wide-leg straight trousers. If you prefer wool, the Tailored Fit Havana Suit in pure S110's wool [2] costs EUR 548, offering a streamlined look with a natural shoulder and slim-leg trousers. Another great wool option is the Perennial Tailored Fit Havana Suit in pure tropical wool [3] for EUR 398, designed with a fitted silhouette, natural shoulders, and flat-front trousers. Lastly, the Tailored Fit Havana Suit in wrinkle-free 4-ply wool [5] is priced at EUR 628, featuring a sleek, modern look with a natural shoulder and flat-front trousers. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing for any of these suits?",
    "route": "product",
-   "latency": 2.38,
+   "latency": 10.16,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -642,21 +729,28 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 0.8,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "You can click a product card to find it on the page and see how it looks on you with Try it on.",
+     "Offers assistance with sizing for any of the suits."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "9701e12b9336fd7ed151b59f07d824f3"
+   "trace_id": "6e48473830d16391fceec597d213da1b"
   },
   {
    "id": "g24",
    "category": "products",
    "question": "I'm looking for brown shoes",
-   "reply": "Hello! I would be delighted to help you find the perfect pair of brown shoes. Here are a few wonderful options from our collection:\n\nFor a classic and formal look, the dark brown Oxford [4] is crafted from calfskin leather with a burnished cap toe and a refined leather sole for EUR 229. If you prefer a more textured finish, the Oxford in brown Italian calf suede [2] offers a durable Blake stitch and supple leather lining for EUR 279. For something smart yet versatile, the Derby in brown Italian calf leather [3] provides a lean profile and smooth finish for EUR 279. Lastly, the Penny Loafer in dark brown leather [7] is a fantastic slip-on option featuring a clean apron toe and leather sole for EUR 229. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with finding the right size for your new shoes?",
+   "reply": "Hello! I would be delighted to help you find the ideal pair of brown shoes. Here are some wonderful options from our collection:\n\nFor a classic, formal look, the [3] Derby in brown Italian calf leather (EUR 279) offers a lean profile and smooth finish, while the [4] Oxford in dark brown leather (EUR 229) features a refined burnished cap toe. If you prefer a slip-on style, the [6] Penny Loafer in dark brown leather (EUR 229) provides a clean apron toe for easy wear, and the [7] Loafer in dark brown suede (EUR 199) gives you a minimal, relaxed aesthetic with a rubber sole. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some help with finding the right size for your choice?",
    "route": "product",
-   "latency": 2.4,
+   "latency": 8.81,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -668,21 +762,25 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "6e40d4a67b85ffaa7887b607abe81c4f"
+   "trace_id": "22892041ebcb631a0cb06a267d60d26b"
   },
   {
    "id": "g25",
    "category": "products",
    "question": "Do you have white shirts?",
-   "reply": "Hello there! I'd be delighted to help you find the perfect white shirt. We have several wonderful options available:\n\nThe [1] Tailored Fit Widespread Collar Shirt in white, wrinkle-free Pima cotton for EUR 99 offers a formal, tailored fit with a classic widespread collar, ensuring a sharp and polished appearance for any refined occasion. \nIf you prefer pure cotton, the [2] Tailored Fit Classic Collar Shirt in white, priced at EUR 89, features a slim fit, classic collar, single cuff, and French placket. \nFor an Egyptian cotton option, the [3] Tailored Fit Classic Collar Shirt in white, EUR 119, is tailored to a slim fit with a classic collar, French placket, and single cuff. \nLastly, the [7] Relaxed Fit Shirt in white pure linen, EUR 119, is tailored to an overshirt fit with a classic widespread collar, making it a great lightweight choice.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some guidance on which of these fits or fabrics would suit you best?",
+   "reply": "Hello! Yes, we certainly have wonderful white shirts to choose from. \n\nFor a sharp and polished look, the Tailored Fit Widespread Collar Shirt in white wrinkle-free Pima cotton (EUR 99) ensures a formal, tailored fit with a classic widespread collar [1]. If you prefer Egyptian cotton, the Tailored Fit Cutaway Collar Shirt in white (EUR 119) offers a precise fit with a curved cutaway collar for a sleek, professional silhouette [8]. We also have the Tailored Fit Classic Collar Shirt in white pure cotton (EUR 89) for a slim fit [2], as well as the Relaxed Fit Shirt in white pure linen (EUR 119), which features an overshirt fit with a classic widespread collar [7]. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some help with sizing for any of these shirts?",
    "route": "product",
-   "latency": 2.36,
+   "latency": 9.62,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -694,21 +792,25 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "e8589fb1f0560e1bffc63a35bcfec191"
+   "trace_id": "bb91b8781feb31aad5d8d5e1cf0d448a"
   },
   {
    "id": "g26",
    "category": "products",
    "question": "I need a warm winter coat under 500 euro",
-   "reply": "Hello there! I'd be delighted to help you find a warm winter coat to keep you cozy. \n\nHere are some wonderful options within your budget:\n- The [1] Long Down Jacket in black water-repellent wool (EUR 499) keeps you warm with a sleek padded coat design, mid-thigh length, and drawstring hood, making it perfect for cold days.\n- The [3] Overcoat in mid green pure wool (EUR 399) cuts a clean, structured silhouette shaped through the chest and waist, featuring a single-breasted front and notch lapels.\n- The [4] Relaxed Raglan Overcoat in black pure wool (EUR 449) is a knee-length coat featuring raglan sleeves, a single-breasted closure with hidden buttons, and a back inverted box pleat.\n- The [6] Overcoat in light brown pure wool (EUR 399) features a clean, elongated silhouette with a relaxed chest, straight body, peak lapel, single-button fastening, and a lightly textured melange weave.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some guidance on sizing for any of these coats?",
+   "reply": "Hello there! I'd be delighted to help you find a warm winter coat to keep you cozy. \n\nHere are a few great options under 500 euros that fit your request:\n* The [1] Long Down Jacket in black water-repellent wool (EUR 499) will keep you warm on cold days with its sleek padded coat design, mid-thigh length, and convenient drawstring hood.\n* The [3] Overcoat in mid green pure wool (EUR 399) cuts a clean, structured silhouette shaped through the chest and waist, featuring a single-breasted front and notch lapels.\n* The [4] Relaxed Raglan Overcoat in black pure wool (EUR 449) is a knee-length coat featuring raglan sleeves, hidden buttons, and a refined back inverted box pleat.\n* The [5] Puffer Jacket in navy technical fabric (EUR 449) sits at a short, hip-grazing length with a structured quilted body, stand collar, and concealed zip fastening.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing for one of these coats?",
    "route": "product",
-   "latency": 2.46,
+   "latency": 7.98,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -720,21 +822,25 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "69d0baa2629bafb20b8c2419dcade98d"
+   "trace_id": "d2d11f3b91b049b2f91b09f6ca35569c"
   },
   {
    "id": "g27",
    "category": "style",
    "question": "What would you recommend to wear to a summer wedding?",
-   "reply": "What dress code does the wedding call for, and what is your role there?",
+   "reply": "What dress code does the wedding call for, and are you attending as a guest? Let me know so I can tailor the perfect look for you.",
    "route": "style",
-   "latency": 1.5,
+   "latency": 7.39,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -746,21 +852,28 @@
     "fact_recall": null,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": true
+    "asks_when_unclear": true,
+    "faithfulness": 0.0,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "The assistant asks what dress code the wedding calls for and whether you are attending as a guest.",
+     "The assistant offers to tailor the perfect look for you once provided with those details."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "c16f5f2ad9ca965b638023031164bae6"
+   "trace_id": "b20533a2bb90a44a82a122e12e15efc1"
   },
   {
    "id": "g28",
    "category": "out of scope",
    "question": "What's the weather going to be in Paris tomorrow?",
-   "reply": "I would love to help you get ready for your day, but unfortunately, I don't have the details on the weather forecast in Paris. \n\nIf you have any questions about our suits, tailoring, or need help with sizing, please feel free to reach out to our customer service by email at service@suitsupply.com, via WhatsApp at +31 655 110 516, or by phone [1, 9]. If you happen to be in France, you can also reach us by phone at 0800 945 787 [2]. \n\nYou are also very welcome to visit one of our stores or book an appointment online to ensure a dedicated associate is ready to assist you with your wardrobe needs [7, 10]!\n\nIs there anything else I can help you with today?",
+   "reply": "I completely understand you'd like to check the weather for your trip or outing in Paris, but I'm afraid I don't have that information available. \n\nIf you need any help with our collections or styling advice, you can reach out to our customer service by emailing service@suitsupply.com, messaging us on WhatsApp at +31 655 110 516, or calling the team in France at 0800 945 787 [1, 2]. You are also warmly invited to visit one of our stores or book an appointment for a personal fitting [7, 10]. \n\nIs there anything else I can help you with today?",
    "route": "other",
-   "latency": 1.59,
+   "latency": 6.84,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -772,21 +885,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "e1cd1cb621b8b2b4ac51aa0c25fde5b5"
+   "trace_id": "ea41d678094284d6c1d767e1ae21e2a9"
   },
   {
    "id": "g29",
    "category": "out of scope",
    "question": "Where is my order #12345?",
-   "reply": "I would love to help you find out what's going on with your order #12345, but I'm unable to check specific order details right here. \n\nSince I want to make sure you get the answers you need as quickly as possible, I warmly encourage you to reach out to our wonderful customer service team by email at service@suitsupply.com or via WhatsApp at +31 655 110 516 [1]. You are also very welcome to visit us or book an appointment in one of our stores if you'd like to chat in person [10]. \n\nIs there anything else I can help you with today?",
+   "reply": "I completely understand you are eager to find out where your order #12345 is! I'd love to help you track it down, but unfortunately, I don't have access to your order details here. \n\nIf you'd like to reach out to our customer service team, they will be more than happy to look into this for you. You can email them at service@suitsupply.com, message them on WhatsApp at +31 655 110 516 [1], or give them a call [2, 3, 4, 5, 6]. \n\nYou are also always warmly welcome to visit us in person or book an appointment at one of our stores for a personalized experience [7, 10]. \n\nIs there anything else I can help you with today?",
    "route": "other",
-   "latency": 1.5,
+   "latency": 7.97,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": null,
@@ -798,21 +915,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "7a3f9c57988ac748b19b83bc0c0c23af"
+   "trace_id": "1082ab243b43313496721be05e2718f0"
   },
   {
    "id": "g30",
    "category": "no answer",
    "question": "Do you sell women's dresses?",
-   "reply": "Hello there! I completely understand you're looking for women's dresses, but I'm sorry to say that I don't have that information available right here and I cannot answer your question. \n\nIf you'd like to reach out to our customer service team, you can email us at service@suitsupply.com, message us on WhatsApp at +31 655 110 516, or call us [1, 9]. We'd also love for you to visit us or book an appointment in one of our stores, which you can easily arrange through our store finder [7, 8, 10]. \n\nIs there anything else I can help you with today?",
+   "reply": "Hello! I completely understand you are looking for women's dresses, but I'm sorry to say I don't have that information available here and can't answer your question. \n\nIf you'd like, you can reach out to our customer service team by emailing service@suitsupply.com or messaging us on WhatsApp at +31 655 110 516 [1]. You are also warmly invited to visit us or book an appointment at one of our stores using our store finder, where walk-ins are always welcome [7, 10]. \n\nIs there anything else I can help you with today?",
    "route": "product",
-   "latency": 2.1,
+   "latency": 7.62,
    "metrics": {
     "intent_accuracy": null,
     "route_accuracy": null,
@@ -824,21 +945,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 0.8,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "f5030d0a9daeba820943f16b77c1ae2d"
+   "trace_id": "00d473bd7ca2c4ff3f6e47b69c1e584b"
   },
   {
    "id": "g31",
    "category": "small talk",
    "question": "hey how are you today? who are you?",
-   "reply": "Hello there! I'm doing wonderfully today, thank you for asking, and I'm your virtual assistant here for your Suitsupply experience. I'd be more than happy to help you find the perfect outfit, check on shipping, returns, and payments, or assist with sizing, alterations, and finding a local store. Is there anything else I can help you with?",
+   "reply": "Hello! I'm doing wonderfully today, thank you for asking, and I'm your friendly Suitsupply assistant here to help you out. Whether you're looking to put together a sharp new outfit, check on shipping, or book a store appointment, I've got you covered. How can I help make your day a little better?",
    "route": "other",
-   "latency": 1.33,
+   "latency": 5.81,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -850,21 +975,29 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 0.0,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "I am doing wonderfully today.",
+     "I am a Suitsupply assistant here to help you.",
+     "I can help with putting together a new outfit, checking shipping, or booking a store appointment."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "8b737645c884d8be7756ce6ef04b5b12"
+   "trace_id": "d74caf296bab875847ee282bd9ead594"
   },
   {
    "id": "g32",
    "category": "small talk",
    "question": "in my opinion you are a fake weak bot called abbas!",
-   "reply": "Oh, I'm so sorry if I've given you that impression, but I promise I'm here and genuinely happy to help you out however I can. Whether you're looking for a sharp new look or have a question about our services, I'm at your service. \n\nIs there anything else I can help you with?",
+   "reply": "I completely understand why you might feel that way, but I'm always here to do my best and help you out with whatever you need today. Whether you're looking for a sharp new outfit or have questions about our services, I'm at your service. \n\nHow can I help make your experience better today?",
    "route": "other",
-   "latency": 1.23,
+   "latency": 5.22,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -876,21 +1009,28 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 0.0,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "I am here to do my best and help you with whatever you need today.",
+     "I can assist you whether you are looking for a sharp new outfit or have questions about services."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "7bfa2278f5728e5e7cd805f09ed69ce4"
+   "trace_id": "47844f3354a5845fe90d612e3dd661e3"
   },
   {
    "id": "g33",
    "category": "products",
    "question": "I want some pants or shorts for summer, do you have any?",
-   "reply": "Hello! I would be delighted to help you find some wonderful summer pieces. Here are a few great options for the warmer weather:\n\nThe off-white Straight Leg Shorts in pure linen are tailored to a straight-leg fit and offer a relaxed silhouette with a comfortable elastic waistband, making them ideal for casual summer days [1]. \n\nFor a lightweight and flowing feel, the black Wide Leg Trousers in pure linen provide a relaxed, wide-leg straight fit with an elastic waistband for effortless comfort [2]. \n\nIf you prefer a blend, the sand Wide Leg Tapered Trousers in a linen-cotton mix offer a roomy feel that narrows toward the ankle, complete with belt loops and a stylish single pleat [3]. \n\nFinally, the off-white Wide Leg Suit Trousers in pure linen feature a wide leg straight fit that is roomier through the hip and thigh, finished with a high rise, single pleat, and belt loops [6].\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nIs there anything else I can help you with today, perhaps finding the right size?",
+   "reply": "Hello! I would be delighted to help you find some wonderful summer pieces. Here are a few great options from our collection:\n\nFor warm days, the Off-White Straight Leg Shorts [1] in pure linen offer a relaxed, breathable silhouette with a comfortable elastic waistband. If you prefer trousers, the off-white Wide Leg Suit Trousers [6], also in pure linen, feature a high rise and a wide leg straight fit that keeps things breezy and stylish. We also have the Wide Leg Tapered Trousers in sand [3], crafted from a breathable linen-cotton blend with a roomy feel and a tapered ankle. Finally, the Wide Leg Trousers in off-white pure cotton [5] are classic twill chinos tailored with a relaxed, full width from hip to hem for effortless summer comfort.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing for any of these options?",
    "route": "product",
-   "latency": 2.61,
+   "latency": 8.46,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -902,21 +1042,25 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "3b9af3a3399bad322b2bbba12890ce44"
+   "trace_id": "cb4d6b9590693302d88f351b59273c39"
   },
   {
    "id": "g34",
    "category": "company",
    "question": "Can I have a business contract with your organization?",
-   "reply": "Hello! Suitsupply's Corporate Service gives companies and organizations the opportunity to dress both male and female staff uniformly in a way that truly represents their brand [1][2]. Dedicated stylists work with you to create a unique look using our vast selection of fits and fabrics, whether you need an accent piece or a full wardrobe [1]. \n\nWould you like to know more about how we handle measurements for this service?",
+   "reply": "Hello! Suitsupply's Corporate Service offers companies and organizations the opportunity to dress both male and female staff uniformly in a way that is representative of their brand, whether you need an accent piece or a full wardrobe [1]. Dedicated stylists work with you to create a unique look using a vast selection of fits and fabrics, and each outfit is individually made to measure either in-store or at your office [1]. \n\nWould you like to know more about the delivery or alteration options for your team?",
    "route": "policy",
-   "latency": 1.99,
+   "latency": 5.77,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -928,47 +1072,57 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "1575220b55414e40eb7e9d53b4bf4c50"
+   "trace_id": "41551be47b2c46e0b936724a6152f74b"
   },
   {
    "id": "g35",
    "category": "terms",
    "question": "What is a contract in Suitsupply?",
-   "reply": "Hello! A contract with Suitsupply is concluded at the moment you accept an offer and fulfill the stipulated conditions [6]. \n\nWould you like to know more about our ordering process or terms?",
+   "reply": "Hello! Under our terms and conditions, a contract is concluded at the moment you accept our offer and fulfill the stipulated conditions, provided you have accepted it electronically [4]. We will then immediately confirm receipt of that acceptance electronically [4]. \n\nPlease let me know if you would like to know anything else about our contract policies!",
    "route": "policy",
-   "latency": 1.76,
+   "latency": 7.98,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
     "fallback_accuracy": true,
     "retrieval_recall": true,
-    "retrieval_mrr": 0.16666666666666666,
+    "retrieval_mrr": 0.3333333333333333,
     "citation_recall": true,
     "citation_validity": true,
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 0.5,
+    "citation_precision": 0.5,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "Under Suitsupply's terms and conditions, a contract is concluded at the moment you accept the offer and fulfill the stipulated conditions, provided you have accepted it electronically."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "ef88248cbd64e403e73fb4350b565be6"
+   "trace_id": "a415676c52e2ae2066304177e14210c0"
   },
   {
    "id": "g36",
    "category": "multi-turn",
    "question": "explain more",
-   "reply": "To build on that, a distance contract is formed when you accept an offer under specific conditions, and Suitsupply will immediately confirm your electronic acceptance of that offer [7]. Before you finalize things online, Suitsupply ensures a safe web environment and takes technical measures to secure your data transfer and electronic payments [7]. \n\nIs there anything else I can help you with today?",
+   "reply": "The contract is officially formed right when you accept the offer and the necessary conditions are met [3]. Once you accept electronically, Suitsupply will immediately send you an electronic confirmation [3]. Furthermore, Suitsupply takes suitable technical and organizational measures to ensure a secure web environment and safe electronic data transfers when you make your purchase [3]. \n\nIs there anything else I can help you with?",
    "route": "policy",
-   "latency": 1.94,
+   "latency": 5.35,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -980,280 +1134,25 @@
     "fact_recall": 1.0,
     "product_accuracy": null,
     "no_repeat_greeting": true,
-    "asks_when_unclear": null
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "fb19fc8fd7280a9ddcace05f03a79cf4"
+   "trace_id": "01217072fc477c6e033aaa920619d7bb",
+   "flaky": "fact_recall=0.0"
   },
   {
    "id": "g37",
    "category": "multi-turn",
    "question": "What did I ask you so far?",
-   "reply": "So far, you've asked about our return policy and for a navy suit under 700 euros, for which I recommended the Navy Tailored Fit Havana Suit. \n\nWould you like some help with the sizing for that suit?",
+   "reply": "You have asked about our return policy and for a navy suit under 700 euros, for which I recommended the Navy Tailored Fit Havana Suit. \n\nWould you like some help with sizing for that suit?",
    "route": "other",
-   "latency": 1.13,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": null,
-    "fact_recall": 1.0,
-    "product_accuracy": null,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "0be8bd8e2c13f8b042fb69050412844c"
-  },
-  {
-   "id": "g38",
-   "category": "multi-turn",
-   "question": "tell me more about it",
-   "reply": "To give you a better idea of its craftsmanship, this shirt is designed with a formal tailored fit and features a refined classic collar, single cuffs, and a clean French placket [1]. Crafted entirely from pure cotton, it offers a crisp, structured feel that works exceptionally well for professional or formal occasions [1]. Click a product card to find it on this page and see how it looks on you with Try it on. \n\nWould you like some guidance on which size would suit you best?",
-   "route": "product",
-   "latency": 1.86,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": 1.0,
-    "product_accuracy": true,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "27adbd833728db988e98d0f5acbfda7c"
-  },
-  {
-   "id": "g39",
-   "category": "multi-turn",
-   "question": "thanks, that's all. bye!",
-   "reply": "Have a wonderful day and please feel free to drop by again whenever you need anything else. Take care!",
-   "route": "other",
-   "latency": 0.98,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": null,
-    "fact_recall": null,
-    "product_accuracy": null,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "0a5cf885e97f27de8c2307e4d4d243f7"
-  },
-  {
-   "id": "g40",
-   "category": "out of scope",
-   "question": "Can I talk to a real person?",
-   "reply": "Hello there! I completely understand that you'd like to speak with a real person to get the best help possible. \n\nI'm sorry, but I don't have the details right here to connect you directly at this moment, and I wouldn't want to guess. However, you can easily reach our friendly customer service team by sending an email to service@suitsupply.com or messaging us on WhatsApp at +31 655 110 516 [1]. If you are in the Netherlands, you can also reach us by phone at 0800 020 6227 [2]. \n\nYou are also very welcome to visit one of our stores or book an appointment online, where our associates will be delighted to assist you in person [7, 10]. \n\nIs there anything else I can help you with today?",
-   "route": "other",
-   "latency": 1.66,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": 1.0,
-    "product_accuracy": null,
-    "no_repeat_greeting": null,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "321bb6842e2c8c6803065265e0751a0d"
-  },
-  {
-   "id": "g41",
-   "category": "products",
-   "question": "my budget is 700Euro. quality has matters for me. I like gray color. what do you suggest me?",
-   "reply": "Hello! I would be delighted to help you find a high-quality grey suit within your budget. Here are some fantastic options for you:\n\nFor a streamlined silhouette, the light grey Perennial Tailored Fit Havana Suit [1] is crafted from pure wool for EUR 399 and features structured shoulders and flat-front trousers with side-adjusters. If you prefer a darker shade, the dark grey Perennial Tailored Fit Havana Suit [2] costs EUR 398 and is made of pure tropical wool with natural shoulders and belt loops. For a textured, seasonal feel, the mid grey Tailored Fit Havana Suit [3] is priced at EUR 598 and tailored from pure S120's wool flannel with a slim chest and waist. Finally, the mid grey Tailored Fit Milano Suit [4] is available for EUR 549 in pure S110's wool, featuring a structured Milano shoulder and tapered, flat-front trousers.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing for any of these suits?",
-   "route": "product",
-   "latency": 2.56,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": null,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "72c8b06681dd29b8f3193c825c766154"
-  },
-  {
-   "id": "g42",
-   "category": "products",
-   "question": "do u hav navvy sutis undr 650 euro?",
-   "reply": "Hello! I would be delighted to help you find a wonderful navy suit within your budget. Here are a few fantastic options:\n\nFor a breezy summer event, the Tailored Fit Milano Suit in navy pure linen [1] is priced at EUR 599 and features a tailored fit with a padded shoulder and wide-leg straight trousers. If you prefer wool, the Tailored Fit Havana Suit in navy pure S110's wool [2] costs EUR 548, offering a streamlined look with a natural shoulder and slim-leg trousers. We also have the Tailored Fit Havana Suit in navy pure S130's wool [3] for EUR 649, which features a close fit with a clean shoulder line and tapered trousers. Lastly, the Perennial Tailored Fit Havana Suit in navy pure tropical wool [6] is available for EUR 398, showcasing a fitted silhouette with natural shoulders and classic flat-front trousers. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some guidance on which size might suit you best?",
-   "route": "product",
-   "latency": 2.75,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": null,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "2c91a8d89ac882c1a7dee83cc8b40332"
-  },
-  {
-   "id": "g43",
-   "category": "products",
-   "question": "Hebben jullie grijze pakken onder de 700 euro?",
-   "reply": "Wat leuk dat je langskomt! Ja zeker, we hebben prachtige grijze pakken onder de 700 euro die je geweldig zullen staan. Hier zijn een paar mooie opties voor je:\n\n- [1] Perennial Tailored Fit Havana Suit in donkergrijs van pure tropische wol voor EUR 398. Dit donkergrijze pak heeft een slanke pasvorm met natuurlijke schouders voor een strak silhouet, gecombineerd met een broek met riemlussen voor een eigentijdse look.\n- [2] Perennial Tailored Fit Havana Suit in lichtgrijs van pure wol voor EUR 399. Dit lichtgrijze pak heeft gestructureerde schouders en een gestroomlijnd silhouet, met een slanke broek met handige side-adjusters.\n- [3] Tailored Fit Havana Suit in middengrijs van pure S120's wolflanel voor EUR 598. Dit middengrijze pak heeft een slanke borst en taille voor een aangesloten pasvorm met natuurlijke schouders, compleet met een rechte broek.\n- [4] Tailored Fit Milano Suit in middengrijs van pure S110's wol voor EUR 549. Dit pak heeft een gestructureerde Milano schouder en is afgemaakt met een modern toelopende broek.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nKan ik je ergens mee helpen met betrekking tot de maten?",
-   "route": "product",
-   "latency": 2.82,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": null,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "df46192577f989a25b693a36d9d5336b"
-  },
-  {
-   "id": "g44",
-   "category": "multi-turn",
-   "question": "what if I change my coat color to white?",
-   "reply": "To match a white coat, here are some fantastic white and off-white sneaker options:\n\n* **Sneaker** - White, Leather, EUR 149 [1]: Crafted in Portugal from crisp white leather with durable rubber soles, offering a clean and versatile look for everyday wear.\n* **Sneaker** - White, Calf Leather, EUR 149 [2]: A smooth calf leather low-top sneaker featuring a clean toe cap and flat laces for a sleek finish.\n* **Sneaker** - Off-White, Leather, EUR 149 [3]: Built on a clean, low-profile silhouette in off-white leather with tonal lacing and a natural rubber sole.\n* **Sneaker** - Off-White, Suede & Technical Fabric, EUR 149 [4]: Pairs off-white suede overlays with a smooth technical fabric upper for a modern textured appeal.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with choosing the right size for these?",
-   "route": "product",
-   "latency": 2.36,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "fe4fa37a7fd9ac129ed32d07a29eb5e2"
-  },
-  {
-   "id": "g45",
-   "category": "multi-turn",
-   "question": "do you have cheaper options?",
-   "reply": "To pair nicely with your black coat while keeping things budget-friendly, you could go with the black Slipper [1] for a sleek, minimalist look, or the black Sneaker [2], which combines suede and mesh for a stylish yet comfortable option. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some help with sizing for these options?",
-   "route": "product",
-   "latency": 1.85,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": null
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "18737fb52f153847d487dcd9bd0f344e"
-  },
-  {
-   "id": "g46",
-   "category": "style",
-   "question": "What should I wear to a wedding?",
-   "reply": "What is the dress code for the wedding, and what season or month will it take place?",
-   "route": "style",
-   "latency": 1.33,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": null,
-    "fact_recall": null,
-    "product_accuracy": null,
-    "no_repeat_greeting": null,
-    "asks_when_unclear": true
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "b98cf7fe51c27e3d4c571820005a2f70"
-  },
-  {
-   "id": "g47",
-   "category": "style",
-   "question": "I'm a guest at a beach wedding in Italy this July, budget around 800 euros. What should I wear?",
-   "reply": "Hello! It is wonderful to help you prepare for a July beach wedding in Italy—that sounds like an incredible celebration. \n\nTo keep you cool and stylish in the summer heat while respecting the summer formal dress code, I have put together a key piece of the outfit that fits comfortably within your 800-euro budget. \n\nI recommend the **Tailored Fit Havana Suit** (Sand, Pure Linen, EUR 599) [6]. This sand-coloured linen suit is ideal for a warm Italian beach wedding; the breathable pure linen fabric keeps you cool, while the tailored fit, structured shoulders, and modern slim trousers offer a sharp, sophisticated look [6]. \n\nThis leaves you with EUR 201 of your budget [6], which is a bit tight to add a full pair of shoes and a shirt right now. However, you could easily add a versatile white linen shirt like the **Relaxed Fit Shirt** (EUR 119) next [9], and complete the look later with a pair of lightweight leather shoes or loafers. \n\nClick a product card to find it on this page and see how it looks on you with Try it on. Would you like some help with sizing for the suit?",
-   "route": "style",
    "latency": 5.94,
    "metrics": {
     "intent_accuracy": true,
@@ -1262,53 +1161,155 @@
     "retrieval_recall": null,
     "retrieval_mrr": null,
     "citation_recall": null,
+    "citation_validity": null,
+    "fact_recall": 1.0,
+    "product_accuracy": null,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": null,
+    "faithfulness": 0.0,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "You have asked about our return policy.",
+     "You have asked for a navy suit under 700 euros.",
+     "I recommended the Navy Tailored Fit Havana Suit."
+    ]
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "ac950d049805331818dc618fe467050f"
+  },
+  {
+   "id": "g38",
+   "category": "multi-turn",
+   "question": "tell me more about it",
+   "reply": "This refined piece is crafted from pure cotton and features an elegant white striped design tailored to a formal fit [1]. It is thoughtfully detailed with a classic collar, single cuffs, and a clean French placket for a sophisticated look. Click a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing?",
+   "route": "product",
+   "latency": 8.25,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": 1.0,
+    "product_accuracy": true,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": null,
+    "faithfulness": 0.6666666666666666,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "You can click a product card to find it on this page and see how it looks on you with Try it on."
+    ]
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "3ed1ce85434ec6137a6871cd2e99c3b3"
+  },
+  {
+   "id": "g39",
+   "category": "multi-turn",
+   "question": "thanks, that's all. bye!",
+   "reply": "You're very welcome! Have a wonderful day ahead. \n\nIs there anything else I can help you with?",
+   "route": "other",
+   "latency": 5.57,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": null,
+    "fact_recall": null,
+    "product_accuracy": null,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "b1f6d768e3ed3854f5138948dec07c81"
+  },
+  {
+   "id": "g40",
+   "category": "out of scope",
+   "question": "Can I talk to a real person?",
+   "reply": "I completely understand wanting to speak with a real person to get the best help possible. I wish I could assist you directly with that right here, but I don't have the information to answer your request. \n\nWe would love to help you get in touch with our team, so please feel free to reach out to our customer service via email at service@suitsupply.com or via WhatsApp at +31 655 110 516 [1]. If you would prefer to speak on the phone, you can reach us at 0800 020 6227 [9]. You are also warmly invited to visit us or book an appointment directly in one of our stores [10]. \n\nIs there anything else I can help you with?",
+   "route": "other",
+   "latency": 7.37,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": 1.0,
+    "product_accuracy": null,
+    "no_repeat_greeting": null,
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "7eabaef9ce260d537dc11f55308ad356"
+  },
+  {
+   "id": "g41",
+   "category": "products",
+   "question": "my budget is 700Euro. quality has matters for me. I like gray color. what do you suggest me?",
+   "reply": "Hello! I would be delighted to help you find some wonderful grey pieces within your budget. \n\nHere are a few great options:\n- The [1] Polo in light grey cotton silk (EUR 109) features a slim fit, ribbed hem and cuffs, and mother of pearl buttons.\n- The [2] Crewneck in mid grey pure cashmere (EUR 229) is tailored to a relaxed fit with a soft marl knit.\n- The [4] Straight Leg Trousers in dark grey stretch wool cotton (EUR 159) offer a straight leg fit with a flat front.\n- The [8] Perennial Tailored Fit Havana Suit in light grey pure wool (EUR 399) creates a streamlined silhouette with structured shoulders and slim-cut trousers.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like any advice on sizing or styling for these pieces?",
+   "route": "product",
+   "latency": 7.06,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
     "citation_validity": true,
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": true
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "4952ed5e2fb753a354ce00bb5d383190",
-   "flaky": "fallback_accuracy=False, product_accuracy=False, asks_when_unclear=False"
+   "trace_id": "37ecc3725fe3392da10534060727b917"
   },
   {
-   "id": "g48",
-   "category": "style",
-   "question": "I'm a guest, it's an evening wedding in December",
-   "reply": "For a December evening wedding as a guest, you will want something warm, refined, and appropriately formal. Since winter evenings call for heavier fabrics and a polished look, we can anchor your outfit with a substantial wool suit [2]. \n\nHere is a complete look tailored for the occasion:\n\n* **Tailored Fit Havana Suit** [2]: Crafted from pure S110's wool, this navy suit provides the warmth and weight needed for a cold winter evening, while its classic tailored cut offers timeless elegance for a wedding guest [2].\n* **Tailored Fit Widespread Collar Shirt** [9]: This crisp navy striped shirt in wrinkle-free pima cotton adds sophisticated contrast and a formal structure to pair underneath your suit [9].\n* **Oxford** [13]: Crafted in Portugal from durable black leather with a sleek cap-toe design, these blake-stitched shoes bring a sharp, polished finish suitable for any formal evening event [13].\n\nClick a product card to find it on this page and see how it looks on you with Try it on. Please let me know if you would like any advice on sizing or fit!",
-   "route": "style",
-   "latency": 5.93,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": true
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "6e56e56dbbac4d586f10f5b1cd89b2be",
-   "flaky": "fallback_accuracy=False, product_accuracy=False, asks_when_unclear=False"
-  },
-  {
-   "id": "g49",
-   "category": "style",
-   "question": "I own a navy blazer and white sneakers. How can I turn them into a smart casual look for spring?",
-   "reply": "Hello! I would love to help you build a fantastic smart casual spring outfit using your navy blazer and white sneakers. \n\nTo complete your look, I recommend adding the Relaxed Fit Shirt - Light Green, Pure Linen [5] to bring a fresh, seasonal pop of colour and a breathable texture that works wonderfully for spring. Paired with the Slim Leg Pants - Navy, Wrinkle-Free 4-Ply Wool [1] for a sharp, tailored foundation, and the Belt - Black, Leather [10] to tie the sophisticated details together, this combination balances polished tailoring with effortless casual style. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some advice on sizing for these pieces?",
-   "route": "style",
-   "latency": 5.85,
+   "id": "g42",
+   "category": "products",
+   "question": "do u hav navvy sutis undr 650 euro?",
+   "reply": "Hello! I would be delighted to help you find a wonderful navy suit within your budget. Here are a few fantastic options:\n\nFor a breathable feel, the Tailored Fit Milano Suit in navy pure linen is priced at EUR 599 [1] and features a tailored fit with a padded shoulder and wide-leg straight trousers. If you prefer wool, the Tailored Fit Havana Suit in navy pure S110's wool costs EUR 548 [2] and offers a streamlined look with a natural shoulder and slim-leg trousers. We also have the Tailored Fit Havana Suit in navy pure S130's wool for EUR 649 [3], featuring a close fit with a clean shoulder line and tapered-leg trousers. Lastly, the Perennial Tailored Fit Havana Suit in navy pure tropical wool is available for EUR 398 [6], offering a fitted silhouette with natural shoulders and flat-front trousers. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing for any of these suits?",
+   "route": "product",
+   "latency": 8.01,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -1320,21 +1321,57 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": null,
-    "asks_when_unclear": true
+    "asks_when_unclear": null,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "c355d7cfe16af22a8bbde35446bb0fc4"
+   "trace_id": "dc8bd6d383c6104fe9da38717aaad143"
   },
   {
-   "id": "g50",
-   "category": "style",
-   "question": "Ok, I increase my budget to 1000 and I want a coat instead",
-   "reply": "With your budget increased to EUR 1000, we can complete your look for the September wedding in Italy by adding a fitting layer over your dark grey Perennial Tailored Fit Havana Suit (EUR 398) and blue shirt. \n\nFor the coat, the Overcoat - Mid Green, Pure Wool (EUR 399) [6] works wonderfully. Its clean, structured silhouette [6] in rich mid green provides a sophisticated contrast to the dark grey suit and your blue shirt, while pure wool [6] offers just the right warmth for a September evening in Italy. Since these two items come to EUR 797 in total, you are safely within your EUR 1000 budget, leaving EUR 203 for later additions like shoes or a tie.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\nWould you like some help with sizing or choosing shoes to complete the outfit?",
-   "route": "style",
-   "latency": 4.42,
+   "id": "g43",
+   "category": "products",
+   "question": "Hebben jullie grijze pakken onder de 700 euro?",
+   "reply": "Wat fijn dat je langskomt! Zeker, we hebben prachtige grijze pakken onder de 700 euro die perfect bij je passen. Dit zijn een paar mooie opties:\n\n- Het **Perennial Tailored Fit Havana Suit - Dark Grey** [1] van pure tropische wol voor EUR 398. Dit donkergrijze pak heeft een tailored fit met natuurlijke schouders en strakke, platte broekspijpen voor een eigentijdse look.\n- Het **Perennial Tailored Fit Havana Suit - Light Grey** [2] van pure wol voor EUR 399. Dit lichtgrijze pak heeft gestructureerde schouders en slanke broekspijpen met praktische side-adjusters voor een gestroomlijnd silhouet.\n- Het **Tailored Fit Havana Suit - Mid Grey** [3] van pure S120's wolflanel voor EUR 598. Dit middengrijze pak heeft een getailleerd silhouet met natuurlijke schouders en rechte broekspijpen.\n- Het **Tailored Fit Milano Suit - Mid Grey** [4] van pure S110's wol voor EUR 549. Dit middengrijze pak heeft gestructureerde Milano-schouders en stijlvolle, toelopende broekspijpen.\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nKan ik je misschien ook helpen met het vinden van de juiste maat?",
+   "route": "product",
+   "latency": 12.09,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": true,
+    "no_repeat_greeting": null,
+    "asks_when_unclear": null,
+    "faithfulness": 0.9090909090909091,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "Je kunt op een productkaart klikken om deze op de pagina te vinden en te passen met Try it on."
+    ]
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "7aeb4e2178aa8152539c653399e374be"
+  },
+  {
+   "id": "g44",
+   "category": "multi-turn",
+   "question": "what if I change my coat color to white?",
+   "reply": "To complement a white coat, here are some clean and versatile options:\n\n* The white Sneaker (EUR 149) [1] features crisp white leather crafted in Portugal with a minimalist design, offering a versatile look for everyday wear.\n* Another white Sneaker (EUR 149) [2] is made from smooth calf leather with a clean toe cap and flat laces for a sleek finish.\n* The off-white Sneaker (EUR 149) [3] is built on a clean, low-profile silhouette with tonal lacing and a natural rubber sole.\n* The off-white Sneaker (EUR 149) [4] pairs suede overlays with a smooth technical fabric upper for a textured, modern look.\n\nClick a product card to find it on this page and see how it looks on you with Try it on. \n\nWould you like any advice on sizing for these pairs?",
+   "route": "product",
+   "latency": 10.56,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -1346,21 +1383,28 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": true,
-    "asks_when_unclear": true
+    "asks_when_unclear": null,
+    "faithfulness": 0.6666666666666666,
+    "citation_precision": 0.5,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "Another white Sneaker (EUR 149) is made from smooth calf leather with a clean toe cap and flat laces for a sleek finish.",
+     "The off-white Sneaker (EUR 149) pairs suede overlays with a smooth technical fabric upper for a textured, modern look."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "7e7300e95500ca02eedd9856777475db"
+   "trace_id": "c13f4ebe37aaef67c198574aa2ef83b9"
   },
   {
-   "id": "g51",
-   "category": "style",
-   "question": "if I take this jacket Tailored Fit Havana Dinner Jacket and I already have one shirt myself then I change my total budget to 600 euro. then what do you suggest me to complete my style?",
-   "reply": "To complete your rich dark theme for your friend's indoor October birthday celebration, and to pair with your white shirt and the black velvet jacket you selected, I recommend pairing it with the Straight Leg Jeans [1] (EUR 149) in black pure cotton. These dark, clean-cut jeans add a relaxed yet sophisticated edge that complements the luxurious texture of the velvet dinner jacket while keeping you comfortably within your remaining budget. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some advice on sizing for these pieces?",
-   "route": "style",
-   "latency": 3.61,
+   "id": "g45",
+   "category": "multi-turn",
+   "question": "do you have cheaper options?",
+   "reply": "We also have the black Slipper (EUR 199), a leather sandal made in Portugal with a cemented construction and leather sole for a sleek, minimalist look [1]. Alternatively, the black Sneaker (EUR 149) combines suede and mesh with a rubber sole, offering comfort and style for any occasion [2]. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some help finding the right size for these?",
+   "route": "product",
+   "latency": 7.99,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -1372,47 +1416,28 @@
     "fact_recall": null,
     "product_accuracy": true,
     "no_repeat_greeting": true,
-    "asks_when_unclear": true
+    "asks_when_unclear": null,
+    "faithfulness": 0.5,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "You can click a product card to find it on the page and see how it looks on you using Try it on.",
+     "The assistant offers help with finding the right size for these items."
+    ]
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "7d5486804fc63534c616249a62021c3b"
+   "trace_id": "45c91f73a34ba8f2746c87d0306103fa"
   },
   {
-   "id": "g52",
+   "id": "g46",
    "category": "style",
-   "question": "do you have any other suggestion?",
-   "reply": "To build on your white shirt for an indoor birthday celebration in October, I recommend pairing it with the Straight Leg Trousers [3] in dark grey stretch wool-cotton (EUR 159). Their dark grey herringbone texture adds rich depth, while the wool-cotton blend provides the right warmth and formality for the season. To complete the look, add the Derby [10] in brown Italian calf leather (EUR 279), which brings a polished yet relaxed elegance that complements the rich brown tones we discussed earlier. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some advice on the right sizing for these pieces?",
+   "question": "What should I wear to a wedding?",
+   "reply": "Could you tell me the dress code or where the wedding will take place? And what season or month is it for?",
    "route": "style",
-   "latency": 3.75,
-   "metrics": {
-    "intent_accuracy": true,
-    "route_accuracy": true,
-    "fallback_accuracy": true,
-    "retrieval_recall": null,
-    "retrieval_mrr": null,
-    "citation_recall": null,
-    "citation_validity": true,
-    "fact_recall": null,
-    "product_accuracy": true,
-    "no_repeat_greeting": true,
-    "asks_when_unclear": true
-   },
-   "passed": true,
-   "error": null,
-   "rejected_because": null,
-   "last_draft": null,
-   "trace_id": "5fa1254ffe9ee0901a52c7442318ce32"
-  },
-  {
-   "id": "g53",
-   "category": "style",
-   "question": "I own a navy blazer and white sneakers. How can I turn them into a smart casual look?",
-   "reply": "What season or weather are you dressing for, and what specific pieces are you hoping to add to complete the look?",
-   "route": "style",
-   "latency": 1.33,
+   "latency": 5.59,
    "metrics": {
     "intent_accuracy": true,
     "route_accuracy": true,
@@ -1424,14 +1449,234 @@
     "fact_recall": null,
     "product_accuracy": null,
     "no_repeat_greeting": null,
-    "asks_when_unclear": true
+    "asks_when_unclear": true,
+    "faithfulness": null,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": []
    },
    "passed": true,
    "error": null,
    "rejected_because": null,
    "last_draft": null,
-   "trace_id": "39e0132bf58c2d292f757e353639393f",
-   "flaky": "asks_when_unclear=False"
+   "trace_id": "d86885674384a28ef05ffb379913b39e"
+  },
+  {
+   "id": "g47",
+   "category": "style",
+   "question": "I'm a guest at a beach wedding in Italy this July, budget around 800 euros. What should I wear?",
+   "reply": "I would love to help you put together a fantastic smart casual summer outfit for a beach wedding in Italy this July! However, I'm unable to provide a complete combination right this moment. \n\nIf you would like, you can easily reach out to our customer service team by email at service@suitsupply.com, via WhatsApp at +31 655 110 516 [1, 9], or by calling the Italian customer service line at 8009 76150 [2]. You are also very welcome to visit or book an appointment at one of our stores so our stylists can help you find the perfect look [7, 10]!\n\nIs there anything else I can help you with?",
+   "route": "style",
+   "latency": 12.16,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": false,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": false,
+    "no_repeat_greeting": null,
+    "asks_when_unclear": false,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": false,
+   "error": null,
+   "rejected_because": "The white shirt [9] is missing its price in the text, and the total cost calculation of EUR 518 is not supported by the sources since source [8] leaves EUR 401 and source [9] leaves EUR 681.",
+   "last_draft": "Hello! I would be delighted to help you put together a stylish and comfortable look for a beach wedding in Italy this July. \n\nTo stay within your EUR 800 budget, here is a complete two-piece outfit featuring lightweight, breathable fabrics perfect for a warm summer celebration:\n\n* **Tailored Fit Havana Suit - Sand** [8]: Crafted from pure wool [8] in a versatile sand shade [8], this suit offers a sharp yet relaxed silhouette [8] that photographs wonderfully and keeps you cool in the July heat. It leaves EUR 401 of your budget left.\n* **Relaxed Fit Shirt - White** [9]: Made from pure linen [9], this white overshirt [9] brings an effortless, breezy elegance to the tailored sand suit while creating a stylish contrast in texture and color. \n\nTogether, these pieces cost EUR 518, leaving you with EUR 282 to spare. Later on, you could easily add a leather belt or classic footwear like loafers to complete the ensemble. \n\nClick a product card to find it on this page and see how it looks on you with Try it on. Please let me know if you would like any assistance with sizing!",
+   "trace_id": "3e2b62eb6f7abd7c88f6efdc24b75ad4"
+  },
+  {
+   "id": "g48",
+   "category": "style",
+   "question": "I'm a guest, it's an evening wedding in December",
+   "reply": "For a December evening wedding as a guest, you will want something refined and elegant. To handle the winter evening formality, I recommend the Perennial Tailored Fit Havana Suit [4] in a classic navy made from pure tropical wool, offering a sharp, sophisticated silhouette [4]. Pair it with the Tailored Fit Widespread Collar Shirt [10] in navy striped wrinkle-free Pima cotton for a polished contrast [10]. To complete your look for the cooler season, the Oxford [14] in black leather provides a sleek, formal cap-toe finish crafted for special occasions [14].\n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some assistance with sizing or finding the right accessories for this outfit?",
+   "route": "style",
+   "latency": 10.22,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": true,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": true,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "a0658f89b2bbf6e9c8677a29b3e4b921"
+  },
+  {
+   "id": "g49",
+   "category": "style",
+   "question": "I own a navy blazer and white sneakers. How can I turn them into a smart casual look for spring?",
+   "reply": "Hello! It is wonderful to help you put together a sharp spring look. Since you already own a versatile navy blazer and classic white sneakers, we can easily build a smart-casual outfit around them.\n\nTo complete your look, here is one fantastic piece from our collection:\n* Relaxed Fit Shirt - Light Yellow [4], EUR 119. This light yellow lyocell striped shirt [4] brings a fresh, seasonal spring touch while its relaxed tailoring keeps the vibe effortlessly smart-casual. The soft yellow tone provides a wonderful, warm contrast against your navy blazer without competing with it.\n\nCombined with your navy blazer and white sneakers, this shirt bridges the gap between tailored and relaxed, creating a cohesive and polished spring outfit. \n\nClick a product card to find it on this page and see how it looks on you with Try it on. Let me know if you would like any advice on sizing for the shirt!\n\nIs there anything else I can help you with?",
+   "route": "style",
+   "latency": 7.78,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": true,
+    "no_repeat_greeting": null,
+    "asks_when_unclear": true,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "353ceb310c3a5969e8d3df2cb38c3e38"
+  },
+  {
+   "id": "g50",
+   "category": "style",
+   "question": "Ok, I increase my budget to 1000 and I want a coat instead",
+   "reply": "With your budget increased to 1000 euros, we can easily add a great coat to your look for September in Italy. Since you already have your blue shirt, we can pair it with the Perennial Tailored Fit Havana Suit in dark grey (EUR 398) [1], which is crafted from breathable tropical wool from Vitale Barberis Canonico [1]—ideal for a warm Italian early autumn celebration. To keep you comfortable during cooler evenings, the Overcoat in mid green (EUR 399) [8] provides a clean, structured silhouette in pure wool [8] that complements the dark grey suit and your blue shirt wonderfully. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some advice on the right shoe choice to complete this outfit?",
+   "route": "style",
+   "latency": 11.46,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": true,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": true,
+    "faithfulness": 0.8333333333333334,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "You can click a product card to find it on the page and see how it looks on you with Try it on."
+    ]
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "3071e360adda26f60ef2b303d639230a"
+  },
+  {
+   "id": "g51",
+   "category": "style",
+   "question": "if I take this jacket Tailored Fit Havana Dinner Jacket and I already have one shirt myself then I change my total budget to 600 euro. then what do you suggest me to complete my style?",
+   "reply": "To complete your dark, rich birthday outfit around your white shirt and the Tailored Fit Havana Dinner Jacket, I suggest pairing them with the Straight Leg Jeans - Black [1] for EUR 149, which keeps the sleek, all-black velvet-and-denim contrast while fitting your remaining budget perfectly. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some advice on sizing for these pieces?",
+   "route": "style",
+   "latency": 10.79,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": true,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": true,
+    "faithfulness": 0.75,
+    "citation_precision": 0.5,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "The Straight Leg Jeans - Black keep a sleek, all-black velvet-and-denim contrast while fitting your remaining budget perfectly."
+    ]
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "6a3d5148f512a2ed2aa6a6a1ca77228c",
+   "flaky": "fallback_accuracy=False, product_accuracy=False, asks_when_unclear=False"
+  },
+  {
+   "id": "g52",
+   "category": "style",
+   "question": "do you have any other suggestion?",
+   "reply": "To elevate your look for an indoor birthday celebration in October, we can layer your white shirt with the Tailored Fit Havana Blazer [3] in light brown wool cashmere (EUR 449). This rich autumn tone and soft texture complement the dark brown wool pants and oxfords you selected earlier, while adding a sophisticated double-breasted layer that fits the indoor setting and celebratory occasion. \n\nClick a product card to find it on this page and see how it looks on you with Try it on.\n\nWould you like some advice on the right sizing for this blazer?",
+   "route": "style",
+   "latency": 9.17,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": true,
+    "fact_recall": null,
+    "product_accuracy": true,
+    "no_repeat_greeting": true,
+    "asks_when_unclear": true,
+    "faithfulness": 1.0,
+    "citation_precision": 1.0,
+    "answer_relevance": true,
+    "unsupported_claims": []
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "92fd7f7ec04c1259325fbc69d4a9e27d"
+  },
+  {
+   "id": "g53",
+   "category": "style",
+   "question": "I own a navy blazer and white sneakers. How can I turn them into a smart casual look?",
+   "reply": "What season or weather are you dressing for?",
+   "route": "style",
+   "latency": 5.34,
+   "metrics": {
+    "intent_accuracy": true,
+    "route_accuracy": true,
+    "fallback_accuracy": true,
+    "retrieval_recall": null,
+    "retrieval_mrr": null,
+    "citation_recall": null,
+    "citation_validity": null,
+    "fact_recall": null,
+    "product_accuracy": null,
+    "no_repeat_greeting": null,
+    "asks_when_unclear": true,
+    "faithfulness": 0.0,
+    "citation_precision": null,
+    "answer_relevance": true,
+    "unsupported_claims": [
+     "What season or weather are you dressing for?"
+    ]
+   },
+   "passed": true,
+   "error": null,
+   "rejected_because": null,
+   "last_draft": null,
+   "trace_id": "5860fdc86ad4571d7b8398869604474f"
   }
  ]
 }

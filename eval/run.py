@@ -6,7 +6,7 @@
     python eval/run.py --save-baseline  # make this run the new baseline
 
 Exits with code 1 when any question fails, so it can gate CI. The baseline comparison shows what changed.
-A failed question is tried up to 3 times, since LLM answers vary between runs: passing on a retry counts, but it is reported as flaky.
+A failed question is tried up to 2 times, since LLM answers vary between runs: passing on a retry counts, but it is reported as flaky.
 Needs the same environment as the api (PG* variables for Cloud SQL, Google login for Vertex AI).
 """
 import argparse
@@ -48,7 +48,7 @@ CHECKS = [
     "asks_when_unclear",  # the stylist asks questions (no products yet) exactly when the request is incomplete
 ]
 NO_CITATIONS = {"greeting", "conversation"}  # small talk and questions about the chat itself have no sources
-TRIES = 3  # a question fails only if all tries fail; passing on a retry is reported as flaky
+TRIES = 2  # a question fails only if all tries fail; passing on a retry is reported as flaky
 # Reported but not pass/fail: ranking quality, and LLM-graded scores that can vary between runs
 INFO = ["retrieval_mrr"]
 JUDGE = ["faithfulness", "citation_precision", "answer_relevance"]

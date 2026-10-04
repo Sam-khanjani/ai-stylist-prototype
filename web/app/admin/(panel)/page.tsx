@@ -324,6 +324,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
   const helpful = pct(sum("up"), votes);
   const fallbackRate = pct(sum("fallbacks"), questions);
   const latest = runs[0];
+  // Runs are newest first: the newest one saved as baseline is what runs are compared with now
+  const baseline = runs.find((r) => r.saved_as_baseline)?.run;
   const byDay = new Map(overview.map((r) => [r.day, r]));
   const axis = lastDays(days);
 
@@ -430,7 +432,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                     <tr key={r.run} className="border-t border-gray-300">
                       <td className="py-2.5 pr-4 whitespace-nowrap">
                         {new Date(r.created_at).toLocaleString()}
-                        {r.saved_as_baseline && <span className="ml-2 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] text-white">baseline</span>}
+                        {r.run === baseline && <span className="ml-2 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] text-white">baseline</span>}
                       </td>
                       <td className="pr-4">
                         {r.gate_passed == null ? <StatusBadge tone="warning" label="No baseline" /> : <StatusBadge tone={r.gate_passed ? "good" : "critical"} label={r.gate_passed ? "Passed" : "Failed"} />}

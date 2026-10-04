@@ -251,9 +251,9 @@ class Intent(BaseModel):
     language: str = Field("English", description="the language the customer writes in, as its English name, e.g. English or Dutch")
     country: str | None = Field(None, description="country name in English, only for questions about stores in a country")
     occasion: Literal[tuple(OCCASIONS)] | None = Field(None, description=(
-        "the closest occasion the customer dresses for, also from the conversation: wedding (also engagement), "
-        "black-tie (gala, tuxedo, formal evening), business (office, interview, meeting), resort (beach, holiday), "
-        "clubbing (night out, party)"
+        "the occasion the customer dresses for, also from the conversation, only when it clearly is one of these: "
+        "wedding (also engagement), black-tie (gala, tuxedo, formal evening), business (office, interview, meeting), "
+        "resort (beach, holiday), clubbing (night out, party). Otherwise none, e.g. for a date or a birthday"
     ))
     question: str = Field("", description="the latest message as a standalone question")
     elaborate: bool = Field(False, description="the customer asks for more detail on the previous answer")
@@ -276,7 +276,7 @@ class Brief(BaseModel):
     role: str = Field("", description="the customer's role at it, e.g. guest or the groom's best friend")
     season: str = Field("", description="season, month or weather")
     dress_code: str = ""
-    wants: str = Field("", description="what they want to buy now, e.g. a full outfit, a suit or a short coat")
+    wants: str = Field("", description="what they want to buy now, in a few words, e.g. a full outfit, a suit or a short coat")
     owns: str = Field("", description="pieces they own and want to wear, e.g. a blue shirt")
     chosen: str = Field("", description="products they decided to buy, with prices, e.g. Havana Dinner Jacket EUR 449")
     budget: float | None = Field(None, description="total budget in EUR for everything they buy, chosen products included")
@@ -293,6 +293,13 @@ class Brief(BaseModel):
         """The known details in one line, for the stylist."""
         details = self.model_dump(exclude={"sections", "ready", "questions", *leave_out}, exclude_defaults=True)
         return "; ".join(f"{k.replace('_', ' ')}: {v}" for k, v in details.items())
+
+    def left(self) -> float | None:
+        """The budget left for new pieces. Worked out from the chosen prices ("... EUR 449") when the model left it out,
+        e.g. right after a new budget."""
+        if self.budget_left is not None or self.budget is None:
+            return self.budget_left
+        return self.budget - sum(float(p) for p in re.findall(r"EUR\s?(\d+(?:\.\d+)?)", self.chosen))
 
     def query(self) -> str:
         """What to search for: the occasion and the look. Not what they own or chose: a navy blazer in the query finds
@@ -415,6 +422,21 @@ def product_source(p: dict, note: str = "") -> dict:
     }
 
 
+FULL_OUTFIT = ["jackets", "trousers", "shirts", "shoes"]
+KEPT = ["occasion", "role", "season", "dress_code", "wants", "owns", "chosen", "budget", "colours", "look"]
+
+
+def keep(b: Brief, saved: Brief):
+    """Details the model left empty keep their saved value: it sometimes writes everything into one field and empties
+    the rest, which lost the budget. A change of mind still replaces a detail, since the new value isn't empty.
+    budget_left isn't kept: after a new budget the old amount left would be wrong (the search then uses the budget)."""
+    if len(b.wants) > 150 and saved.wants:  # everything written into "wants"
+        b.wants = saved.wants
+    for field in KEPT:
+        if getattr(b, field) in ("", None):
+            setattr(b, field, getattr(saved, field))
+
+
 def style_brief(state: State):
     """Updates the saved details with the latest message, then asks what's missing (at most two questions) or goes on
     to build the outfit from them."""
@@ -423,6 +445,8 @@ def style_brief(state: State):
     details = Brief(**saved).model_dump_json(exclude={"ready", "questions", "sections"}) if saved else "(none yet)"
     prompt = with_history(BRIEF_PROMPT.format(details=details), state)
     b = briefer.invoke([SystemMessage(prompt), HumanMessage(state["messages"][-1].content)])
+    if saved:
+        keep(b, Brief(**saved))
     b.ready = b.ready or not b.questions.strip()  # "not ready" without a question would send an empty reply
     if b.ready:
         return {"brief": b}
@@ -434,12 +458,13 @@ def style_search(state: State):
     the best matches per section. No single product above the budget."""
     b, i, page = state["brief"], state["intent"], occasions().get(state["intent"].occasion)
     by_id = {p["id"]: p for p in products()}
-    limit = b.budget_left if b.budget_left is not None else b.budget  # what's left after the chosen products
+    limit = b.left()  # what's left after the chosen products
     previous = state.get("previous_sources") or []
     # So the stylist can keep or swap them when the customer changes their mind; left out when they ask for others
     earlier = [] if i.alternatives else [p for p in products() if p["url"] in previous]
     # "Other options" for the same look: the pieces of the earlier outfit if the stylist left none
-    sections = b.sections or (i.alternatives and (state.get("previous_brief") or {}).get("sections")) or []
+    # No sections chosen (a broken brief): the pieces of the earlier look, or a full outfit
+    sections = b.sections or (state.get("previous_brief") or {}).get("sections") or FULL_OUTFIT
     picks = [by_id[pid] for pid in page["products"] if pid in by_id] if page else []
     picks = [p for p in picks if not limit or p["price"] <= limit]
     # At most two per piece of the outfit: a page of twelve suits would leave no room for the shirt and shoes
@@ -448,6 +473,8 @@ def style_search(state: State):
     found = earlier + picks + [
         p for section in sections for p in retrieval.search_products(b.query(), section, max_price=limit, k=k)
     ]
+    # The latest message itself, for specific asks the outfit search misses ("this vest in another colour?")
+    found += retrieval.search_products(i.question or state["messages"][-1].content, max_price=limit, k=4)
     found = list({p["id"]: p for p in found}.values())  # a pick can also be a search match
     if i.alternatives:
         found = [p for p in found if p["url"] not in previous]
@@ -495,16 +522,19 @@ def cited_numbers(text: str) -> set[int]:
 
 def over_budget(state: State) -> str:
     """The budget check, in code: language models add up prices unreliably, both when writing and when judging.
-    An outfit's cited products, apart from the ones already chosen, must fit the budget left."""
+    An outfit's cited products, apart from the ones already chosen, must fit the budget left. Products of the same
+    kind count once, the cheapest: they're options to pick from (the same shirt in two colours), not bought together."""
     b = state.get("brief")
-    limit = b and (b.budget_left if b.budget_left is not None else b.budget)
+    limit = b and b.left()
     if state["intent"].intent != "style" or not limit:
         return ""
     cited = cited_numbers(state["draft"])
-    total = sum(
-        s["product"]["price"] for n, s in enumerate(state["sources"], 1)
-        if n in cited and "product" in s and s["product"]["name"].lower() not in b.chosen.lower()
-    )
+    cheapest = {}
+    for n, s in enumerate(state["sources"], 1):
+        if n in cited and "product" in s and s["product"]["name"].lower() not in b.chosen.lower():
+            kind, price = section_of(s["product"]), s["product"]["price"]
+            cheapest[kind] = min(price, cheapest.get(kind, price))
+    total = sum(cheapest.values())
     if total <= limit:
         return ""
     return (
