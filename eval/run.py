@@ -5,7 +5,7 @@
     python eval/run.py --judge          # also measure faithfulness, citation precision and relevance with Gemini
     python eval/run.py --save-baseline  # make this run the new baseline
 
-Exits with code 1 when a question that passed in the baseline now fails, so it can gate CI.
+Exits with code 1 when any question fails, so it can gate CI. The baseline comparison shows what changed.
 Needs the same environment as the api (PG* variables for Cloud SQL, Google login for Vertex AI).
 """
 import argparse
@@ -81,6 +81,7 @@ def product_ok(cards: list[dict], want: dict) -> bool:
         (not want.get("section") or f"/{want['section']}/" in p["url"])
         and (not want.get("color") or want["color"] in (p["color"] or "").lower())
         and (not want.get("max_price") or p["price"] <= want["max_price"])
+        and p["url"] not in want.get("exclude", [])  # e.g. "any other suggestion?" must not repeat the previous ones
         for p in cards
     )
 
@@ -131,10 +132,11 @@ def judge(g: dict, state: dict, out: dict) -> dict:
 def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
     start = time.time()
     trace_id, config = agent.run_config(session_id=run_name)  # one Langfuse session per eval run
+    state = {}
     try:
         # Multi-turn cases bring the earlier messages and the pages the previous answer cited
         history = [tuple(m) for m in g.get("history", [])]
-        first = agent.inputs(g["question"], g.get("summary", ""), history, g.get("previous_sources", []))
+        first = agent.inputs(g["question"], g.get("summary", ""), history, g.get("previous_sources", []), g.get("brief"))
         state = agent.graph.invoke(first, config=config)
         out = agent.result(state, trace_id)
         metrics = check(g, state, out) | (judge(g, state, out) if use_judge else {})
@@ -161,6 +163,9 @@ def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
         "metrics": metrics,
         "passed": passed,
         "error": error,
+        # Why the app's own judge rejected the answer, so a fallback can be understood without opening the trace
+        "rejected_because": v.problems if (v := state.get("verdict")) and not v.qualified else None,
+        "last_draft": state.get("draft") if v and not v.qualified else None,
         "trace_id": trace_id,
     }
 
@@ -223,6 +228,8 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
         print("\nFailures")
         for r in failures:
             print(f"  {r['id']} {r['question'][:50]:<50} {failed_checks(r)}")
+            if r["rejected_because"]:
+                print(f"      app judge rejected it: {r['rejected_because'][:300]}")
 
     unsupported = [(r["id"], c) for r in results for c in r["metrics"].get("unsupported_claims", [])]
     if unsupported:
@@ -230,18 +237,20 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
         for qid, claim in unsupported:
             print(f"  {qid} {claim[:100]}")
 
-    if not baseline:
+    if baseline:
+        regressions, fixed = compare(results, baseline)
+        print(f"\nCompared with baseline {baseline['run']}: {len(regressions)} regression(s), {len(fixed)} fixed")
+        for r in regressions:
+            label = "ERROR     " if r["error"] else "REGRESSION"
+            print(f"  {label} {r['id']} {r['question'][:50]}  {failed_checks(r)}")
+        for r in fixed:
+            print(f"  fixed      {r['id']} {r['question'][:50]}")
+    else:
         print("\nNo baseline yet. Run with --save-baseline to create one.")
-        return 0
 
-    regressions, fixed = compare(results, baseline)
-    print(f"\nCompared with baseline {baseline['run']}: {len(regressions)} regression(s), {len(fixed)} fixed")
-    for r in regressions:
-        label = "ERROR     " if r["error"] else "REGRESSION"
-        print(f"  {label} {r['id']} {r['question'][:50]}  {failed_checks(r)}")
-    for r in fixed:
-        print(f"  fixed      {r['id']} {r['question'][:50]}")
-    return 1 if regressions else 0
+    passed = all(r["passed"] for r in results)
+    print(f"\nGate: {'PASSED' if passed else 'FAILED'} (every question must pass)")
+    return 0 if passed else 1
 
 
 def compare(results: list[dict], baseline: dict) -> tuple[list[dict], list[dict]]:
@@ -269,7 +278,7 @@ def save_to_db(run_name: str, summary: dict, results: list[dict], baseline: dict
                 run_name,
                 json.dumps(summary),
                 json.dumps(failures),
-                not regressions if baseline else None,  # no baseline = nothing to gate against
+                not failures,  # the gate passes only when every question passes
                 baseline["run"] if baseline else None,
                 json.dumps(brief(regressions)),
                 json.dumps(brief(fixed)),

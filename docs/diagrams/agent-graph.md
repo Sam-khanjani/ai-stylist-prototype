@@ -17,7 +17,7 @@ flowchart TD
     intent -. style .-> style_brief
     intent -. "order_status, human, out_of_scope" .-> fallback
 
-    style_brief{{"style_brief<br/><small>enough known for an outfit? occasion, season, role,<br/>or the pieces they own and the look they want</small>"}}
+    style_brief{{"style_brief<br/><small>updates the details saved with the conversation<br/>(occasion, season, role, budget, what they want, what they own...)<br/>with the latest message, then: enough known for an outfit?</small>"}}
     style_brief -. "missing info: up to 2 questions" .-> finish
     style_brief -. ready .-> style_search
     style_search["style_search<br/><small>occasion page advice, Suitsupply's picks for it,<br/>best matches per section</small>"] --> answer

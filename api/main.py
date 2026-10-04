@@ -72,18 +72,21 @@ def chat_stream(req: ChatRequest, visitor_id: str = Depends(visitor)):
         if not conversation:
             raise HTTPException(404, "conversation not found")
         memory, recent = conversation["summary"], history.recent_messages(conversation_id)
-        previous_sources = history.last_sources(conversation_id)
+        previous_sources, brief = history.last_sources(conversation_id), history.get_brief(conversation_id)
     else:
         conversation_id, memory, recent, previous_sources = history.create_conversation(visitor_id, req.message), "", [], []
+        brief = None
     history.add_message(conversation_id, "user", req.message)
     start = time.monotonic()
 
     def events():
         yield f"event: conversation\ndata: {json.dumps(conversation_id)}\n\n"
         intent = None
-        for event, data in stream_agent(req.message, memory, conversation_id, recent, previous_sources):
+        for event, data in stream_agent(req.message, memory, conversation_id, recent, previous_sources, brief):
             if event == "done":
                 intent = data["intent"]
+                if data["brief"]:  # only styling turns update it; other questions leave it for later
+                    history.set_brief(conversation_id, data["brief"])
                 latency_ms = int((time.monotonic() - start) * 1000)
                 history.add_message(conversation_id, "assistant", data["reply"], data, latency_ms)
                 history.record_event(data["route"], data["fallback"], latency_ms, data["trace_id"])

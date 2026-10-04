@@ -23,7 +23,6 @@ type Run = {
   gate_passed: boolean | null;
   baseline: string | null;
   regressions: { id: string; question: string }[] | null;
-  fixed: { id: string; question: string }[] | null;
   saved_as_baseline: boolean | null;
 };
 type Gap = {
@@ -247,7 +246,7 @@ function TryOnPanel({ usage, days }: { usage: TryOnUsage; days: number }) {
   const top = usage.top_products;
   const most = Math.max(...top.map((p) => p.uses), 1);
   return (
-    <Card title="Try it on" action={<span className="text-xs text-text-secondary">usage and estimated cost · no photos stored</span>}>
+    <Card className="border-t-4 border-t-tryon" title="Try it on" action={<span className="text-xs text-text-secondary">usage and estimated cost · no photos stored</span>}>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Size requests" value={String(t.size?.uses ?? 0)} note="from a photo or height and weight" />
         <Stat label="Try-ons" value={String(tryons)} note={`avg ${seconds(t.tryon?.avg_latency_ms)} · ${t.look?.uses ?? 0} looks suggested`} />
@@ -268,7 +267,7 @@ function TryOnPanel({ usage, days }: { usage: TryOnUsage; days: number }) {
               const d = byDay.get(day);
               return {
                 key: day,
-                segments: [{ value: n(d?.tryons), className: "bg-accent" }],
+                segments: [{ value: n(d?.tryons), className: "bg-tryon" }],
                 tooltip: [day, `${n(d?.tryons)} try-ons`, `${n(d?.sizes)} size requests`, `≈ ${usd(n(d?.cost))}`],
               };
             })}
@@ -294,7 +293,7 @@ function TryOnPanel({ usage, days }: { usage: TryOnUsage; days: number }) {
                     <span className="tabular-nums">{p.uses}</span>
                   </div>
                   <div className="mt-1 h-2 rounded-[4px] bg-gray-300">
-                    <div className="h-full rounded-[4px] bg-accent" style={{ width: `${(100 * p.uses) / most}%` }} />
+                    <div className="h-full rounded-[4px] bg-tryon" style={{ width: `${(100 * p.uses) / most}%` }} />
                   </div>
                 </li>
               ))}
@@ -415,7 +414,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
             <table className="w-full text-left text-sm">
               <thead className="text-xs text-text-secondary">
                 <tr>
-                  {["Run", "Gate", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Fixed", "Latency"].map((h) => (
+                  {["Run", "Gate", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Latency"].map((h) => (
                     <th key={h} className="pr-4 pb-2 font-normal whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -462,9 +461,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                         ) : (
                           <span className="text-text-secondary">none</span>
                         )}
-                      </td>
-                      <td className="pr-4 text-xs text-text-secondary" title={r.fixed?.map((x) => `${x.id}: ${x.question}`).join("\n")}>
-                        {r.fixed?.length ? r.fixed.map((x) => x.id).join(", ") : "–"}
                       </td>
                       <td className="text-xs text-text-secondary whitespace-nowrap">{r.summary.latency_avg} s</td>
                     </tr>

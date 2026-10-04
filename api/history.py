@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS eval_runs (
 
 -- Added later; IF NOT EXISTS keeps existing databases working
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS route text;
+-- The style advisor's details (occasion, budget, what they want...), updated on every styling turn
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS brief jsonb;
 -- Only for the daily try-on limit; cleared after a day by cleanup()
 ALTER TABLE tryon_events ADD COLUMN IF NOT EXISTS visitor_id uuid;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS latency_ms integer;
@@ -197,6 +199,17 @@ def recent_messages(conversation_id: str) -> list[tuple[str, str]]:
 def set_summary(conversation_id: str, summary: str):
     with db.connection() as conn:
         conn.execute("UPDATE conversations SET summary = %s WHERE id = %s", (summary, conversation_id))
+
+
+def get_brief(conversation_id: str) -> dict | None:
+    with db.connection() as conn:
+        row = conn.execute("SELECT brief FROM conversations WHERE id = %s", (conversation_id,)).fetchone()
+    return row[0] if row else None
+
+
+def set_brief(conversation_id: str, brief: dict):
+    with db.connection() as conn:
+        conn.execute("UPDATE conversations SET brief = %s WHERE id = %s", (json.dumps(brief), conversation_id))
 
 
 def set_vote(visitor_id: str, trace_id: str, value: int):

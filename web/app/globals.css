@@ -37,6 +37,8 @@
   --color-route-product: #eb6834;
   --color-route-other: #1baf7a;
   --color-accent: #2a78d6;
+  /* Try-on charts, set apart from the chat ones; validated against all three route colors */
+  --color-tryon: #b8327f;
   --color-good: #0ca30c;
   --color-warning: #fab219;
   --color-critical: #d03b3b;
