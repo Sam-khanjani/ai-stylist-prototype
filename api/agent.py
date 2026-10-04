@@ -10,14 +10,28 @@ from pydantic import BaseModel, Field
 import retrieval
 from catalog import COLORS, OCCASIONS, SECTIONS, card, occasions, products, section_of
 
+CHAT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+# Gemini 2.x takes a temperature and a seed, so the same question takes the same path (best effort, says Google).
+# Gemini 3.x ignores them and thinking_budget, with a warning on every call, so they're only sent to 2.x.
+SAMPLING = {} if CHAT_MODEL.startswith("gemini-3") else {
+    "temperature": float(os.getenv("GEMINI_TEMPERATURE", "0")),
+    "seed": int(os.getenv("GEMINI_SEED", "42")),
+    "thinking_budget": int(os.getenv("GEMINI_THINKING_BUDGET", "0")),  # no thinking: faster; -1 lets the model decide
+}
 llm = ChatGoogleGenerativeAI(
-    # Flash-lite: routing and answering from given sources don't need the bigger model, and it is much faster
-    model=os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+    model=CHAT_MODEL,
     vertexai=True,
     project=retrieval.PROJECT,
-    # Gemini 3.x is not offered in single EU regions; the "eu" multi-region keeps processing in the EU
-    location=os.getenv("GEMINI_LOCATION", "eu"),
-    # No temperature: Gemini 3.x uses fixed sampling settings and ignores it (with a warning on every call)
+    # 2.5 is offered in single EU regions; Gemini 3.x needs the "eu" multi-region
+    location=os.getenv("GEMINI_LOCATION", "europe-west4"),
+    **SAMPLING,
+    # At temperature 0 the model can loop, repeating itself up to its 65K-token limit for minutes; replies here are a
+    # few hundred tokens (a full one takes up to ~10s).
+    max_output_tokens=2048,
+    # Generous on purpose: the SDK sends it to the server as a deadline, and a request the server cancels (499) isn't
+    # retried, while timeouts on our side, 429s and 5xx are
+    timeout=60,
+    max_retries=3,  # attempts, including the first
 )
 
 # The memory is written by a cheaper, older model: condensing a chat doesn't need the newest one.
@@ -118,8 +132,9 @@ Keep the customer's details up to date and decide whether you know enough to sug
 The details below are what you know from earlier in this conversation. Start from them and update them with the latest
 message: change only what the customer changes or adds (e.g. a higher budget and a coat instead of a suit) and keep
 every other detail as it is.
-- For an occasion you need: the occasion and its dress code, the season or weather, and the customer's role when it
-  matters (e.g. groom or guest).
+- For an occasion you need: the occasion, its dress code unless the occasion makes it clear (a beach wedding is
+  relaxed summer smart), the season or weather, and the customer's role when it matters (at a wedding always: groom
+  or guest).
 - For styling clothes they own you need: the pieces they want to build on, the look they are after and the season.
 Budget, colour preferences and choices between options (e.g. linen suit or blazer) are optional: never ask about
 them, you suggest them. As soon as what you need is known, set ready to true.
@@ -152,10 +167,14 @@ most the other recommended products may cost together (a product that leaves EUR
 Pieces the customer owns and your own styling tips need no citation.
 When the brief has a budget, the products you recommend must add up to no more than the budget left (the budget when
 nothing is chosen yet): if a full outfit doesn't fit, recommend the most important pieces and say what could be added later.
+Cite only the products to buy now; name pieces for later without a citation.
 When something the customer asks for can't be met (e.g. nothing fits the budget left), say so kindly and why, then offer
 the closest options you have, e.g. the cheapest fitting piece, and what a higher budget would allow. If there
-is nothing to offer, say so and give styling advice only. When the customer asks about products recommended before,
-answer that first.
+is nothing to offer, say so and give styling advice only. Answer the customer's latest message first (e.g. whether a
+product comes in other colours, and the most similar products if it doesn't), then the outfit.
+Match fabrics to the season: light ones (tropical wool, linen, cotton) for summer, warmer ones (flannel, heavier wool,
+cashmere, velvet) for autumn and winter. Keep the formality consistent: a tuxedo shirt goes with a tuxedo or dinner
+jacket, not with a regular suit.
 Never invent products, prices or details. Keep it short. Prices are in EUR, were collected for a demo and may have changed.
 {TRY_ON}
 {TONE}
@@ -175,7 +194,8 @@ Decide whether the draft answer below is good enough to send to the customer. It
 1. It answers the customer's question; for a product request it recommends products that fit the request.
 2. Every fact (policies, prices, times, products, contact details) is supported by the numbered sources. Nothing is invented.
 3. Every citation [n] points to a source that supports that sentence, and every recommended product is cited with its
-   number (without it the customer gets no product card).
+   number (without it the customer gets no product card). Pieces only suggested for later, over the budget, are
+   named without a citation.
 4. It is clear, polite and not repetitive. It may be in another language than the sources, to match the customer.
 The friendly closing line offering more help and the invitation to try products on are expected and need no citation.
 A citation at the end of a sentence covers every fact in it. Recommending a few of the fitting products is fine; it
@@ -186,7 +206,8 @@ An answer that openly says a request can't be fully met and why (e.g. nothing fi
 helpful, not a problem. When the budget left is too small for a full outfit, recommending fewer pieces is right.
 You don't need to check prices against the budget or add them up: the system does that. An answer may state its
 total; that is not a problem. Colour and style choices are the stylist's call: reject them only when they
-clearly don't fit the request or the occasion. Reject only for real problems, not for wording or style.
+clearly don't fit the request or the occasion, and don't invent dress-code rules the customer didn't give (an evening
+wedding is not black-tie unless they say so). Reject only for real problems, not for wording or style.
 If it is not qualified, list the problems briefly so the writer can fix them.
 
 Sources:
@@ -295,11 +316,12 @@ class Brief(BaseModel):
         return "; ".join(f"{k.replace('_', ' ')}: {v}" for k, v in details.items())
 
     def left(self) -> float | None:
-        """The budget left for new pieces. Worked out from the chosen prices ("... EUR 449") when the model left it out,
-        e.g. right after a new budget."""
-        if self.budget_left is not None or self.budget is None:
-            return self.budget_left
-        return self.budget - sum(float(p) for p in re.findall(r"EUR\s?(\d+(?:\.\d+)?)", self.chosen))
+        """The budget left for new pieces: the budget minus the chosen prices ("... EUR 449"), worked out here instead
+        of trusting the model's budget_left, which kept the old amount after a new budget."""
+        prices = re.findall(r"(?:EUR|€)\s?(\d+(?:\.\d+)?)", self.chosen)
+        if self.budget is None or (self.chosen and not prices):  # nothing to work it out from
+            return self.budget_left if self.budget_left is not None else self.budget
+        return self.budget - sum(map(float, prices))
 
     def query(self) -> str:
         """What to search for: the occasion and the look. Not what they own or chose: a navy blazer in the query finds
@@ -311,7 +333,8 @@ MAX_DRAFTS = 2  # a rejected draft is rewritten once with the judge's feedback, 
 ANSWER_KIND = {
     "product": "product suggestions: alternatives to choose from, each within the customer's price limit; their prices "
     "are not added up",
-    "style": "an outfit: the recommended products are worn together (the budget is checked separately)",
+    "style": "an outfit: the recommended products are worn together (the budget is checked separately). Style, colour "
+    "and formality are the stylist's call: reject them only when they plainly contradict what the customer asked",
 }
 
 
@@ -437,6 +460,22 @@ def keep(b: Brief, saved: Brief):
             setattr(b, field, getattr(saved, field))
 
 
+def still_unknown(b: Brief, saved: dict | None) -> list[str]:
+    """What the stylist needs before suggesting an outfit and doesn't know yet. Each is asked about once: if it was
+    already unknown last turn, the stylist assumes a sensible default instead of asking again."""
+    unknown = []
+    if not b.occasion and not b.owns:
+        unknown.append("the occasion or the clothes to build on")
+    if not b.season:
+        unknown.append("the season or month")
+    if "wedding" in b.occasion.lower() and not b.role:
+        unknown.append("whether they are the groom or a guest")
+    if saved:
+        before = still_unknown(Brief(**saved), None)
+        unknown = [u for u in unknown if u not in before]
+    return unknown
+
+
 def style_brief(state: State):
     """Updates the saved details with the latest message, then asks what's missing (at most two questions) or goes on
     to build the outfit from them."""
@@ -444,13 +483,45 @@ def style_brief(state: State):
     # Sections aren't a customer detail: they're chosen again from what the customer wants now (a coat, not the suit)
     details = Brief(**saved).model_dump_json(exclude={"ready", "questions", "sections"}) if saved else "(none yet)"
     prompt = with_history(BRIEF_PROMPT.format(details=details), state)
-    b = briefer.invoke([SystemMessage(prompt), HumanMessage(state["messages"][-1].content)])
+    message = HumanMessage(state["messages"][-1].content)
+    b = briefer.invoke([SystemMessage(prompt), message])
     if saved:
         keep(b, Brief(**saved))
+    for field in KEPT:  # at temperature 0 a field can repeat itself ("for a wedding guest, for a wedding guest, ...")
+        if isinstance(value := getattr(b, field), str) and len(value) > 150:
+            value = ", ".join(dict.fromkeys(value.split(", ")))  # drop the repeats
+            setattr(b, field, value if len(value) <= 150 else value[:150].rsplit(",", 1)[0])
     b.ready = b.ready or not b.questions.strip()  # "not ready" without a question would send an empty reply
+    # Gemini 2.5 says ready without the season or the role at a wedding, even when told; the code asks for them, in a
+    # small call that only writes the question (in the customer's language)
+    if b.ready and (unknown := still_unknown(b, saved)):
+        ask = f"Ask the customer about {' and '.join(unknown)}, in one or two short, warm questions. Only the questions."
+        b.ready, b.questions = False, llm.invoke([SystemMessage(with_history(ask, state)), message]).text
+    # A new budget the model didn't pick up: it copied the saved one, while intent detection read the new amount
+    if saved and (new := state["intent"].max_price) and b.budget == Brief(**saved).budget != new:
+        b.budget = new
+    # Same for a piece named now: "wants" is what the customer just asked for, not the copied "a suit"
+    if saved and wanted_piece(state["intent"], b) and b.wants == Brief(**saved).wants:
+        b.wants = state["messages"][-1].content[:150]
     if b.ready:
         return {"brief": b}
     return {"brief": b, "messages": [AIMessage(b.questions)], "sources": []}
+
+
+def wanted_piece(i: Intent, b: Brief) -> bool:
+    """The message names a kind of product to find ("a coat instead"), not one the customer owns or chose ("if I take
+    this jacket")."""
+    return bool(i.section) and i.section.rstrip("s") not in f"{b.chosen} {b.owns}".lower()
+
+
+def off_season(season: str) -> tuple[str, ...]:
+    """Fabric words that don't suit the season: light ones in the cold months, heavy ones in summer."""
+    season = season.lower()
+    if any(m in season for m in ("oct", "nov", "dec", "jan", "feb", "autumn", "fall", "winter")):
+        return ("linen", "tropical", "seersucker")
+    if any(m in season for m in ("jun", "jul", "aug", "summer")):
+        return ("flannel", "velvet", "corduroy", "tweed")
+    return ()
 
 
 def style_search(state: State):
@@ -462,19 +533,40 @@ def style_search(state: State):
     previous = state.get("previous_sources") or []
     # So the stylist can keep or swap them when the customer changes their mind; left out when they ask for others
     earlier = [] if i.alternatives else [p for p in products() if p["url"] in previous]
-    # "Other options" for the same look: the pieces of the earlier outfit if the stylist left none
-    # No sections chosen (a broken brief): the pieces of the earlier look, or a full outfit
+    # No sections chosen (a broken brief, or "other options"): the pieces of the earlier look, or a full outfit
     sections = b.sections or (state.get("previous_brief") or {}).get("sections") or FULL_OUTFIT
+    # A piece the customer names now, as intent detection read it (Gemini 2.5 kept the saved "a suit"). In a follow-up
+    # it's the only piece searched ("a coat instead"); in a first message it comes first in the outfit
+    if wanted_piece(i, b):
+        sections = [i.section] if state.get("previous_brief") else [i.section, *(s for s in sections if s != i.section)]
+
+    # What doesn't suit the occasion is left out in code: the prompt asks for it, but Gemini 2.5 picked tropical wool
+    # for December and, with those gone, a tuxedo for a guest at an evening wedding
+    wrong = off_season(b.season)
+    # Suitsupply's wedding guide: tuxedos are for black-tie weddings, a dark suit for the others
+    no_tuxedo = "wedding" in b.occasion.lower() and i.occasion != "black-tie" and "black" not in b.dress_code.lower()
+
+    def fits(p: dict) -> bool:
+        name, material = p["name"].lower(), (p["material"] or "").lower()
+        if any(f in material for f in wrong):
+            return False
+        return not (no_tuxedo and ("tuxedo" in name or "dinner jacket" in name))
+
     picks = [by_id[pid] for pid in page["products"] if pid in by_id] if page else []
-    picks = [p for p in picks if not limit or p["price"] <= limit]
+    picks = [p for p in picks if (not limit or p["price"] <= limit) and fits(p)]
     # At most two per piece of the outfit: a page of twelve suits would leave no room for the shirt and shoes
     picks = [p for section in sections for p in [q for q in picks if section_of(q) == section][:2]]
     k = 3 + len(previous) if i.alternatives else 3  # the earlier products are dropped below, so fetch more
+    # Extra candidates, so leaving out what doesn't fit still leaves k per section
     found = earlier + picks + [
-        p for section in sections for p in retrieval.search_products(b.query(), section, max_price=limit, k=k)
+        p for section in sections
+        for p in [q for q in retrieval.search_products(b.query(), section, max_price=limit, k=k + 6) if fits(q)][:k]
     ]
-    # The latest message itself, for specific asks the outfit search misses ("this vest in another colour?")
-    found += retrieval.search_products(i.question or state["messages"][-1].content, max_price=limit, k=4)
+    # The latest message itself, for asks about a specific product the outfit search misses ("this vest in another
+    # colour?"). Only then: "I own a navy blazer, ..." would find more navy pieces
+    if i.alternatives or i.section:
+        asked = i.question or state["messages"][-1].content
+        found += [p for p in retrieval.search_products(asked, max_price=limit, k=6) if fits(p)][:4]
     found = list({p["id"]: p for p in found}.values())  # a pick can also be a search match
     if i.alternatives:
         found = [p for p in found if p["url"] not in previous]
@@ -520,33 +612,60 @@ def cited_numbers(text: str) -> set[int]:
     return {int(n) for group in re.findall(r"\[([\d,\s]+)\]", text) for n in re.findall(r"\d+", group)}
 
 
-def over_budget(state: State) -> str:
+def too_expensive(state: State) -> tuple[float | None, list[tuple[int, dict]]]:
     """The budget check, in code: language models add up prices unreliably, both when writing and when judging.
-    An outfit's cited products, apart from the ones already chosen, must fit the budget left. Products of the same
-    kind count once, the cheapest: they're options to pick from (the same shirt in two colours), not bought together."""
+    An outfit's cited products, apart from the ones already chosen, must fit the budget left. They're added up in the
+    order the answer mentions them; a second product of the same kind is an option (the same shirt in another colour),
+    not bought too. Returns the budget left and the cited products that don't fit after the ones before them."""
     b = state.get("brief")
     limit = b and b.left()
     if state["intent"].intent != "style" or not limit:
+        return limit, []
+    draft = state["draft"]
+    total, kinds, extra = 0, set(), []
+    for n in sorted(cited_numbers(draft), key=lambda n: draft.find(f"[{n}]")):
+        s = state["sources"][n - 1] if n <= len(state["sources"]) else {}
+        if "product" not in s or s["product"]["name"].lower() in b.chosen.lower():
+            continue
+        kind, price = section_of(s["product"]), s["product"]["price"]
+        if kind in kinds:
+            continue
+        if total + price <= limit:
+            total, kinds = total + price, kinds | {kind}
+        else:
+            extra.append((n, s["product"]))
+    return limit, extra
+
+
+def over_budget(state: State) -> str:
+    """Names exactly what doesn't fit: Gemini 2.5 ignored the general "don't cite pieces for later"."""
+    limit, extra = too_expensive(state)
+    if not extra:
         return ""
-    cited = cited_numbers(state["draft"])
-    cheapest = {}
-    for n, s in enumerate(state["sources"], 1):
-        if n in cited and "product" in s and s["product"]["name"].lower() not in b.chosen.lower():
-            kind, price = section_of(s["product"]), s["product"]["price"]
-            cheapest[kind] = min(price, cheapest.get(kind, price))
-    total = sum(cheapest.values())
-    if total <= limit:
-        return ""
+    names = ", ".join(f"[{n}] {p['name']} (EUR {p['price']:.0f})" for n, p in extra)
     return (
-        f"The recommended products add up to EUR {total:.0f}, EUR {total - limit:.0f} over the EUR {limit:.0f} budget "
-        f"left. Recommend fewer or cheaper products that fit within EUR {limit:.0f} together and say what could be added later."
+        f"With the EUR {limit:.0f} budget left, these don't fit after the pieces before them: {names}. "
+        "Remove their citation numbers and mention them only as additions for later, or swap them for cheaper products."
     )
+
+
+def within_budget(state: State) -> str:
+    """The last draft with what doesn't fit turned into an idea for later: no card, and a note saying why. Gemini 2.5
+    kept adding prices up wrong after the feedback, and the contact reply helps the customer less than this."""
+    limit, extra = too_expensive(state)
+    draft = state["draft"]
+    for n, _ in extra:
+        draft = re.sub(rf"\s*\[{n}\]", "", draft)
+    names = " and ".join(f"the {p['name']} (EUR {p['price']:.0f})" for _, p in extra)
+    return f"{draft}\n\nNote: {names} would go over the EUR {limit:.0f} you have left, so take it as an idea for later."
 
 
 def judge(state: State):
     """Checks the draft before the customer sees it: answers the question, grounded in the sources, valid citations."""
     if problem := over_budget(state):  # no need to ask the model
-        return {"verdict": Verdict(qualified=False, problems=problem), "fallback": state["drafts"] >= MAX_DRAFTS}
+        if state["drafts"] >= MAX_DRAFTS:  # last try: send it without what doesn't fit, rather than the contact reply
+            return {"verdict": Verdict(qualified=True), "messages": [AIMessage(within_budget(state))]}
+        return {"verdict": Verdict(qualified=False, problems=problem)}
     system = JUDGE_PROMPT.format(sources=numbered(state["sources"]))
     check = f"Customer question: {question(state)}\n\nDraft answer:\n{state['draft']}"
     # A budget means something else for a list of options than for an outfit; the judge can't tell them apart itself

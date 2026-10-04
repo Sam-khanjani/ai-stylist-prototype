@@ -282,7 +282,7 @@ def status():
     return counts | {
         "retention_days": history.RETENTION_DAYS,
         "event_retention_days": history.EVENT_RETENTION_DAYS,
-        "chat_model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+        "chat_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         "embedding_model": "gemini-embedding-001",
         "tracing": bool(os.getenv("LANGFUSE_SECRET_KEY")),
         # Cloud Run sets this to the deployed revision name

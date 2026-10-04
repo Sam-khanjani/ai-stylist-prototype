@@ -48,6 +48,7 @@ CHECKS = [
     "asks_when_unclear",  # the stylist asks questions (no products yet) exactly when the request is incomplete
 ]
 NO_CITATIONS = {"greeting", "conversation"}  # small talk and questions about the chat itself have no sources
+SLOW_S = 8  # answers slower than this get their time per step printed
 TRIES = 2  # a question fails only if all tries fail; passing on a retry is reported as flaky
 # Reported but not pass/fail: ranking quality, and LLM-graded scores that can vary between runs
 INFO = ["retrieval_mrr"]
@@ -134,12 +135,19 @@ def judge(g: dict, state: dict, out: dict) -> dict:
 def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
     start = time.time()
     trace_id, config = agent.run_config(session_id=run_name)  # one Langfuse session per eval run
-    state = {}
+    state, steps, last = {}, [], time.time()
     try:
         # Multi-turn cases bring the earlier messages and the pages the previous answer cited
         history = [tuple(m) for m in g.get("history", [])]
         first = agent.inputs(g["question"], g.get("summary", ""), history, g.get("previous_sources", []), g.get("brief"))
-        state = agent.graph.invoke(first, config=config)
+        # Streamed only to time each step, so slow answers show where the time went
+        for mode, data in agent.graph.stream(first, config=config, stream_mode=["updates", "values"]):
+            if mode == "values":
+                state = data
+            else:
+                now = time.time()
+                steps += [(node, round(now - last, 2)) for node in data]
+                last = now
         out = agent.result(state, trace_id)
         metrics = check(g, state, out) | (judge(g, state, out) if use_judge else {})
         error = None
@@ -168,6 +176,8 @@ def run_one(g: dict, run_name: str, use_judge: bool) -> dict:
         # Why the app's own judge rejected the answer, so a fallback can be understood without opening the trace
         "rejected_because": v.problems if (v := state.get("verdict")) and not v.qualified else None,
         "last_draft": state.get("draft") if v and not v.qualified else None,
+        "steps": steps,  # (graph step, seconds)
+        "brief": out.get("brief"),  # the stylist's details after this turn
         "trace_id": trace_id,
     }
 
@@ -239,6 +249,12 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
         print("\nFlaky (failed, then passed on a retry)")
         for r in flaky:
             print(f"  {r['id']} {r['question'][:50]:<50} first try: {r['flaky']}")
+
+    slow = sorted((r for r in results if r["latency"] > SLOW_S), key=lambda r: -r["latency"])
+    if slow:
+        print(f"\nSlow (over {SLOW_S}s): seconds per step")
+        for r in slow:
+            print(f"  {r['id']} {r['latency']:>5}s  " + "  ".join(f"{node} {s}" for node, s in r.get("steps", [])))
 
     unsupported = [(r["id"], c) for r in results for c in r["metrics"].get("unsupported_claims", [])]
     if unsupported:
@@ -320,6 +336,8 @@ def main():
         results.append(r)
         note = "  (flaky: passed on retry)" if r.get("flaky") else ""
         print(f"{'PASS' if r['passed'] else 'FAIL'} {r['id']} {r['latency']:>5}s  {g['question'][:60]}{note}")
+        if r["latency"] > SLOW_S:  # where the time went, right away
+            print("      " + "  ".join(f"{node} {s}s" for node, s in r["steps"]))
     agent.flush()
 
     summary = summarize(results)
