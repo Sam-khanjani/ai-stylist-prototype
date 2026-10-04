@@ -118,14 +118,42 @@ def any_of(column: str, values: list[str]) -> dict:
 
 
 _cache: dict[int, tuple[float, dict]] = {}
+MAX_PAGES = 10  # of 1,000 observations each
+
+
+def percentile(values: list[float], p: int) -> float | None:
+    values = sorted(values)
+    return values[min(len(values) - 1, len(values) * p // 100)] if values else None
+
+
+def totals(calls: list) -> dict:
+    return {
+        "sum_totalCost": sum(c.total_cost or 0 for c in calls),
+        "sum_inputTokens": sum((c.usage_details or {}).get("input", 0) for c in calls),
+        "sum_outputTokens": sum((c.usage_details or {}).get("output", 0) for c in calls),
+        "count_count": len(calls),
+    }
+
+
+def latencies(spans: list) -> dict:
+    ms = [1000 * s.latency for s in spans if s.latency is not None]
+    return {"p50_latency": percentile(ms, 50), "p95_latency": percentile(ms, 95), "count_count": len(spans)}
+
+
+def group(items: list, key) -> dict[str, list]:
+    groups = defaultdict(list)
+    for i in items:
+        groups[key(i)].append(i)
+    return groups
 
 
 @router.get("/langfuse")
 def langfuse(days: int = 7):
-    """Cost, tokens, latency and errors from Langfuse's Metrics API.
+    """Cost, tokens, latency and errors, added up here from Langfuse's observations.
 
-    The queries run in parallel and the result is cached for a minute: each call takes ~1 s, and the
-    dashboard doesn't need second-by-second numbers.
+    Langfuse's Metrics API would add them up itself, but the free plan allows it only 100 requests a day; the
+    observations endpoint allows 30 a minute. Three filtered fetches run in parallel and the result is cached for
+    a minute: the dashboard doesn't need second-by-second numbers.
     """
     if not os.getenv("LANGFUSE_SECRET_KEY"):
         return {"enabled": False}
@@ -135,48 +163,54 @@ def langfuse(days: int = 7):
     from langfuse import get_client
 
     client = get_client()
-    now = datetime.now(timezone.utc)
-    window = {"fromTimestamp": (now - timedelta(days=days)).isoformat(), "toTimestamp": now.isoformat()}
+    since = {"column": "startTime", "operator": ">=", "value": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(), "type": "datetime"}
 
-    def query(view, metrics, dimensions=(), filters=(), granularity=None):
-        q = {
-            "view": view,
-            "metrics": [{"measure": m, "aggregation": a} for m, a in metrics],
-            "dimensions": [{"field": d} for d in dimensions],
-            "filters": [*filters, NOT_EVAL],
-            **window,
-        }
-        if granularity:
-            q["timeDimension"] = {"granularity": granularity}
-        # Without a timeout a slow Langfuse hangs the request (and the dashboard waiting on it)
-        return client.api.metrics.metrics(query=json.dumps(q), request_options=LANGFUSE_LIMITS).data
+    def fetch(condition: dict, fields: str) -> list:
+        found, cursor = [], None
+        for _ in range(MAX_PAGES):
+            # Without a timeout a slow Langfuse hangs the request (and the dashboard waiting on it)
+            page = client.api.observations.get_many(
+                filter=json.dumps([condition, since, NOT_EVAL]), fields=fields, limit=1000, cursor=cursor, request_options=LANGFUSE_LIMITS
+            )
+            found += page.data
+            cursor = page.meta.cursor
+            if not cursor or len(page.data) < 1000:
+                break
+        return found
 
-    llm_calls = [any_of("type", ["GENERATION"])]
-    usage = [("totalCost", "sum"), ("inputTokens", "sum"), ("outputTokens", "sum"), ("count", "count")]
-    sections = {
-        "usage": lambda: query("observations", usage, filters=llm_calls),
-        "daily": lambda: query("observations", usage, filters=llm_calls, granularity="day"),
-        "models": lambda: query("observations", [*usage, ("latency", "p95")], ["providedModelName"], llm_calls),
-        # whole answers: the root span of each run is named after the agent
-        "end_to_end": lambda: query(
-            "observations", [("latency", "p50"), ("latency", "p95"), ("latency", "p99"), ("count", "count")],
-            filters=[any_of("name", ["stylist-agent"])],
-        ),
-        "steps": lambda: query(
-            "observations", [("latency", "p50"), ("latency", "p95"), ("count", "count")], ["name"], [any_of("name", AGENT_STEPS)]
-        ),
-        "errors": lambda: query("observations", [("count", "count")], ["name"], [any_of("level", ["ERROR"])]),
+    fetches = {
+        "calls": lambda: fetch(any_of("type", ["GENERATION"]), "core,basic,usage,model,metrics"),
+        # the root span of each answer is named after the agent
+        "spans": lambda: fetch(any_of("name", [*AGENT_STEPS, "stylist-agent"]), "core,basic,metrics"),
+        "errors": lambda: fetch(any_of("level", ["ERROR"]), "core,basic"),
     }
 
     def safe(run):
         try:
             return run()
-        except Exception as e:  # one failing query shouldn't hide the rest
+        except Exception as e:  # one failing fetch shouldn't hide the rest
             return {"error": describe(e)}
 
-    with ThreadPoolExecutor(len(sections)) as pool:
-        results = dict(zip(sections, pool.map(safe, sections.values())))
-    result = {"enabled": True, "days": days} | results
+    with ThreadPoolExecutor(len(fetches)) as pool:
+        calls, spans, errors = pool.map(safe, fetches.values())
+    by_name = group(spans, lambda s: s.name) if isinstance(spans, list) else {}
+    result = {"enabled": True, "days": days}
+    if isinstance(calls, list):
+        result |= {
+            "usage": [totals(calls)],
+            "daily": [{"time_dimension": day, **totals(cs)} for day, cs in sorted(group(calls, lambda c: c.start_time.date().isoformat()).items())],
+            "models": [{"providedModelName": m, **totals(cs), **latencies(cs)} for m, cs in group(calls, lambda c: c.model).items()],
+        }
+    else:
+        result |= dict.fromkeys(["usage", "daily", "models"], calls)
+    if isinstance(spans, list):
+        result |= {
+            "end_to_end": [latencies(by_name.pop("stylist-agent", []))],
+            "steps": [{"name": name, **latencies(ss)} for name, ss in by_name.items()],
+        }
+    else:
+        result |= dict.fromkeys(["end_to_end", "steps"], spans)
+    result["errors"] = [{"name": n, "count_count": len(es)} for n, es in group(errors, lambda e: e.name).items()] if isinstance(errors, list) else errors
     _cache[days] = (time.monotonic(), result)
     return result
 

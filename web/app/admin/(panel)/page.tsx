@@ -21,7 +21,6 @@ type Run = {
     flaky?: string[]; // failed once, passed on retry
   };
   failures: { id: string; question: string; checks: string }[];
-  gate_passed: boolean | null;
   baseline: string | null;
   regressions: { id: string; question: string }[] | null;
   saved_as_baseline: boolean | null;
@@ -116,7 +115,7 @@ async function LlmUsage({ days }: { days: number }) {
     <>
       {failed.length > 0 && <Unavailable what={failed.map(([, label]) => label).join(", ").replace(/^./, (c) => c.toUpperCase())} detail={failedDetail} />}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Latency p95" value={seconds(p95)} note={`p50 ${seconds(e2e.p50_latency as number | null)} · full answer`} status={badge(tone(p95, (v) => v <= 5000, (v) => v <= 10000))} />
+        <Stat label="Latency p95" value={seconds(p95)} note={`p50 ${seconds(e2e.p50_latency as number | null)} · full answer`} />
         <Stat label="LLM cost" value={usd(cost)} note={answers && cost != null ? `${usd(cost / answers)} per answer` : "from Langfuse"} />
         <Stat label="Tokens" value={(n(usage.sum_inputTokens) + n(usage.sum_outputTokens)).toLocaleString()} note={`${n(usage.sum_inputTokens).toLocaleString()} in · ${n(usage.sum_outputTokens).toLocaleString()} out`} />
         <Stat
@@ -344,13 +343,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Questions" value={String(questions)} note={`${(questions / days).toFixed(1)} per day`} />
-        <Stat label="Helpful votes" value={helpful == null ? "–" : `${helpful}%`} note={`${votes} votes`} status={badge(tone(helpful, (v) => v >= 80, (v) => v >= 60))} />
+        <Stat label="Helpful votes" value={helpful == null ? "–" : `${helpful}%`} note={`${votes} votes`} />
         <Stat label="Fallback rate" value={fallbackRate == null ? "–" : `${fallbackRate}%`} note="sent to contact options" status={badge(tone(fallbackRate, (v) => v <= 15, (v) => v <= 30))} />
         <Stat
-          label="Eval gate"
+          label="Eval accuracy"
           value={latest ? `${Math.round(100 * latest.summary.answer_accuracy)}%` : "–"}
           note={latest ? `latest run ${ago(latest.created_at)}` : "no runs yet"}
-          status={latest && (latest.gate_passed == null ? <StatusBadge tone="warning" label="No baseline" /> : <StatusBadge tone={latest.gate_passed ? "good" : "critical"} label={latest.gate_passed ? "Passed" : "Failed"} />)}
         />
       </div>
 
@@ -397,7 +395,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
 
       <TryOnPanel usage={tryonUsage} days={days} />
 
-      <Card title="Eval gate history" action={<span className="text-xs text-text-secondary">golden dataset · {latest?.summary.questions ?? 40} questions</span>}>
+      <Card title="Eval history" action={<span className="text-xs text-text-secondary">golden dataset · {latest?.summary.questions ?? 40} questions</span>}>
         {runs.length === 0 ? (
           <p className="text-sm text-text-secondary">No eval runs yet. Run <code>python eval/run.py</code>.</p>
         ) : (
@@ -408,7 +406,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                 <div
                   key={r.run}
                   className="flex h-full flex-1 items-end"
-                  title={`${new Date(r.created_at).toLocaleString()} · ${Math.round(100 * r.summary.answer_accuracy)}% · gate ${r.gate_passed == null ? "no baseline" : r.gate_passed ? "passed" : "failed"}`}
+                  title={`${new Date(r.created_at).toLocaleString()} · ${Math.round(100 * r.summary.answer_accuracy)}%`}
                 >
                   <div className="w-full rounded-t-[4px] bg-accent hover:opacity-80" style={{ height: `${100 * r.summary.answer_accuracy}%`, minHeight: 3 }} />
                 </div>
@@ -417,7 +415,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
             <table className="w-full text-left text-sm">
               <thead className="text-xs text-text-secondary">
                 <tr>
-                  {["Run", "Gate", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Flaky", "Latency"].map((h) => (
+                  {["Run", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Flaky", "Latency"].map((h) => (
                     <th key={h} className="pr-4 pb-2 font-normal whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -433,9 +431,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                       <td className="py-2.5 pr-4 whitespace-nowrap">
                         {new Date(r.created_at).toLocaleString()}
                         {r.run === baseline && <span className="ml-2 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] text-white">baseline</span>}
-                      </td>
-                      <td className="pr-4">
-                        {r.gate_passed == null ? <StatusBadge tone="warning" label="No baseline" /> : <StatusBadge tone={r.gate_passed ? "good" : "critical"} label={r.gate_passed ? "Passed" : "Failed"} />}
                       </td>
                       <td
                         className="pr-4"

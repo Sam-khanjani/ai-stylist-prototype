@@ -15,7 +15,7 @@ resource "google_cloud_run_v2_service_iam_member" "api_from_scheduler" {
 
 resource "google_cloud_scheduler_job" "chat_cleanup" {
   name      = "chat-history-cleanup"
-  region    = "europe-west1" # Cloud Scheduler isn't offered in every region; this keeps it in the EU
+  region    = var.region
   schedule  = "0 3 * * *"
   time_zone = "Europe/Amsterdam"
 
