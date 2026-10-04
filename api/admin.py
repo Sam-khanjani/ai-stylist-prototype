@@ -62,6 +62,7 @@ def overview(days: int = 30):
                count(*) AS questions,
                count(*) FILTER (WHERE route = 'policy') AS policy,
                count(*) FILTER (WHERE route = 'product') AS product,
+               count(*) FILTER (WHERE route = 'style') AS style,
                count(*) FILTER (WHERE route = 'other') AS other,
                count(*) FILTER (WHERE fallback) AS fallbacks,
                count(*) FILTER (WHERE vote = 1) AS up,
@@ -108,7 +109,7 @@ def evals():
     )
 
 
-AGENT_STEPS = ["intent", "policy_search", "product_search", "answer", "judge", "smalltalk", "recall", "fallback"]
+AGENT_STEPS = ["intent", "policy_search", "product_search", "style_brief", "style_search", "answer", "judge", "smalltalk", "recall", "fallback"]
 NOT_EVAL = {"column": "environment", "operator": "none of", "value": ["eval"], "type": "stringOptions"}  # eval runs tag themselves
 
 

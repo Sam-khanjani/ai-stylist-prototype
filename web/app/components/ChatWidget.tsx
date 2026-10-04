@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import type { Card } from "@/lib/card";
 import ProductCard from "./ProductCard";
@@ -80,6 +81,14 @@ export default function ChatWidget() {
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  // A product card in the chat opens the product in the catalog on this page, where it can be tried on
+  function showProduct(id: string) {
+    if (location.pathname !== "/" || location.search) router.push("/", { scroll: false }); // a section filter could hide it
+    window.dispatchEvent(new CustomEvent("show-product", { detail: id }));
+    if (!matchMedia("(min-width: 640px)").matches) setOpen(false); // the chat covers the whole screen on phones
+  }
 
   async function loadConversations() {
     const res = await fetch("/api/conversations");
@@ -316,7 +325,7 @@ export default function ChatWidget() {
                   <ul className="-mx-4 mt-3 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:thin]">
                     {m.products.map((p) => (
                       <li key={p.id} className="w-36 shrink-0 snap-start">
-                        <ProductCard product={p} />
+                        <ProductCard product={p} onSelect={() => showProduct(p.id)} />
                       </li>
                     ))}
                   </ul>

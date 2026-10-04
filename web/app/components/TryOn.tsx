@@ -60,6 +60,18 @@ export default function TryOn({ products }: { products: Card[] }) {
   const [busy, setBusy] = useState<keyof typeof BUSY_TEXT | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [focused, setFocused] = useState<{ id: string } | null>(null); // a product opened from the chat
+
+  // The chat's product cards open the product here; a new object each time so a second click scrolls again
+  useEffect(() => {
+    const show = (e: Event) => setFocused({ id: (e as CustomEvent<string>).detail });
+    window.addEventListener("show-product", show);
+    return () => window.removeEventListener("show-product", show);
+  }, []);
+  // Also after products change: coming from a filtered section, the product appears only once the list reloads
+  useEffect(() => {
+    if (focused) document.getElementById(`product-${focused.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focused, products]);
   const panel = useRef<HTMLElement>(null);
 
   const heightCm = Number(height);
@@ -194,9 +206,18 @@ export default function TryOn({ products }: { products: Card[] }) {
     <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
       <ul className="grid flex-1 grid-cols-2 gap-x-2 gap-y-10 md:grid-cols-3 lg:gap-y-16">
         {products.map((p) => (
-          <li key={p.id}>
+          <li
+            key={p.id}
+            id={`product-${p.id}`}
+            className={focused?.id === p.id ? "rounded-md ring-2 ring-gray-800 ring-offset-4" : undefined}
+          >
             <ProductCard product={p} />
             {tryButton(p)}
+            {focused?.id === p.id && SLOTS[sectionOf(p)] && (
+              <p className="mx-1 mt-2 text-xs text-text-secondary">
+                Curious how it looks on you? Add it to your try-on, add your photo in the Try it on panel and press Try it on.
+              </p>
+            )}
           </li>
         ))}
       </ul>

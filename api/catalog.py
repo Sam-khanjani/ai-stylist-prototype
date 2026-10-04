@@ -7,7 +7,9 @@ from urllib.parse import urlparse
 CATALOG = Path(os.getenv("CATALOG_PATH", Path(__file__).resolve().parent.parent / "data/raw/products.jsonl"))
 SECTIONS = ["accessories", "coats", "jackets", "knitwear", "shirts", "shoes", "shorts", "suits", "trousers", "waistcoats"]
 # The colour words in the catalog ("Dark Grey" -> grey); the product filter matches them as written
-COLORS = ["black", "blue", "brown", "burgundy", "green", "grey", "navy", "pink", "purple", "sand", "taupe", "white"]
+COLORS = ["black", "blue", "brown", "burgundy", "green", "grey", "navy", "pink", "purple", "red", "sand", "taupe", "white", "yellow"]
+# The site's occasion pages, collected by ingest/occasions.py
+OCCASIONS = ["black-tie", "business", "clubbing", "resort", "wedding"]
 
 
 @cache
@@ -15,6 +17,13 @@ def products() -> list[dict]:
     if not CATALOG.exists():
         return []
     return [json.loads(line) for line in CATALOG.read_text().splitlines() if line]
+
+
+@cache
+def occasions() -> dict:
+    """Occasion name -> {title, url, products}: the page and the product ids Suitsupply features for it."""
+    path = CATALOG.parent / "occasions.json"
+    return json.loads(path.read_text()) if path.exists() else {}
 
 
 def section_of(product: dict) -> str:

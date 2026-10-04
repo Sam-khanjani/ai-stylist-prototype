@@ -14,7 +14,13 @@ flowchart TD
     intent -. conversation .-> recall
     intent -. "policy, store" .-> policy_search
     intent -. product .-> product_search
+    intent -. style .-> style_brief
     intent -. "order_status, human, out_of_scope" .-> fallback
+
+    style_brief{{"style_brief<br/><small>enough known for an outfit? occasion, season, role,<br/>or the pieces they own and the look they want</small>"}}
+    style_brief -. "missing info: up to 2 questions" .-> finish
+    style_brief -. ready .-> style_search
+    style_search["style_search<br/><small>occasion page advice, Suitsupply's picks for it,<br/>best matches per section</small>"] --> answer
 
     policy_search["policy_search<br/><small>hybrid search over the knowledge pages,<br/>all stores of a country,<br/>or the previous answer's pages for 'explain more'</small>"] --> answer
     product_search["product_search<br/><small>semantic search with section, colour<br/>and price filters, or the products<br/>recommended before for 'explain more'</small>"] --> answer
@@ -35,7 +41,7 @@ flowchart TD
     finish([end])
 
     finish -. "after the reply is sent" .-> summarize
-    summarize[/"summarize, outside the graph (api/main.py)<br/><small>cheaper gemini-2.5-flash-lite; only after a policy, store or product turn<br/>in a chat of 10+ messages or 2,500+ characters</small>"/]
+    summarize[/"summarize, outside the graph (api/main.py)<br/><small>cheaper gemini-2.5-flash-lite; only after a policy, store, product or style turn<br/>in a chat of 10+ messages or 2,500+ characters</small>"/]
 ```
 
 | Intent | Route (eval, dashboard, events table) | Next node |
@@ -44,6 +50,7 @@ flowchart TD
 | policy | policy | policy_search |
 | store | policy | policy_search |
 | product | product | product_search |
+| style | style | style_brief |
 | order_status | other | fallback |
 | human | other | fallback |
 | conversation | other | recall |

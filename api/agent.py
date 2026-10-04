@@ -8,7 +8,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from pydantic import BaseModel, Field
 
 import retrieval
-from catalog import COLORS, SECTIONS, card, products
+from catalog import COLORS, OCCASIONS, SECTIONS, card, occasions, products, section_of
 
 llm = ChatGoogleGenerativeAI(
     # Flash-lite: routing and answering from given sources don't need the bigger model, and it is much faster
@@ -36,7 +36,9 @@ INTENT_PROMPT = """Detect the intent of the customer's latest message for a mens
 - "policy": shipping, delivery, returns, refunds, payments, gift cards, sizing, alterations, services such as
   Custom Made or Size Passport, materials, customer service contact details or company information.
 - "store": store locations, addresses, opening hours, which stores are in a city or country, appointments.
-- "product": the customer wants product suggestions, prices or details about clothing and accessories.
+- "product": the customer looks for a kind of product, its price or details (e.g. "navy suit under 700", "do you have brown shoes?").
+- "style": the customer wants styling advice: what to wear to an occasion or event, how to style or combine clothes they
+  already own, putting together a look or building a style. Also their answers to the stylist's questions about it.
 - "order_status": anything about a specific order or account: where is my order, change or cancel an order,
   my account, my payment. The assistant cannot look these up.
 - "human": the customer asks for a person, a stylist or customer service, or makes a complaint.
@@ -64,7 +66,7 @@ Memory so far:
 {summary}"""
 
 # Only turns like these bring facts worth remembering; greetings, "what did I ask" or contact replies don't
-WORTH_REMEMBERING = {"policy", "store", "product"}
+WORTH_REMEMBERING = {"policy", "store", "product", "style"}
 SUMMARY_MIN_CHARS = 2500  # below this, and within the last RECENT messages, the messages themselves are memory enough
 
 NO_ANSWER = "NO_ANSWER"
@@ -73,6 +75,10 @@ NO_ANSWER = "NO_ANSWER"
 TONE = """Be warm, polite and personal, like a friendly assistant in the store.
 End the reply with one short, friendly line offering more help, e.g. "Is there anything else I can help you with?".
 Vary the wording and fit it to the conversation, e.g. offer help with sizing after recommending a suit."""
+
+# Product cards in the chat open the product on this site, next to the try-on panel
+TRY_ON = """Before the closing line, invite the customer in one sentence to click a product card to find it on this
+page and see how it looks on them with the Try it on feature."""
 
 ANSWER_PROMPT = f"""You are the customer service assistant of an unofficial demo store built on public Suitsupply information.
 Answer only from the numbered sources below and cite every fact with its number in square brackets, one number per bracket, e.g. [2] or [1][3].
@@ -91,9 +97,41 @@ e.g. why linen or a light color suits a summer event. Cite every product with it
 If none of the listed products fits the request, for example the customer asks for something the store does not sell,
 reply with exactly {NO_ANSWER} and nothing else. Never invent products, prices or details.
 Keep it short. Prices are in EUR, were collected for a demo and may have changed.
+{TRY_ON}
 {TONE} (Not when you reply {NO_ANSWER}.)
 
 Products:
+{{sources}}"""
+
+# The stylist first makes sure it knows enough, like a stylist in the store would ask before suggesting anything
+BRIEF_PROMPT = f"""You are the personal stylist of an unofficial demo store built on public Suitsupply information.
+Decide whether you know enough to suggest one concrete outfit.
+- For an occasion you need: the occasion and its dress code, the season or weather, and the customer's role when it
+  matters (e.g. groom or guest).
+- For styling clothes they own you need: the pieces they want to build on and the look they are after.
+Budget and colour preferences help but are optional.
+If something important is missing, set ready to false and write at most two short questions about it in questions,
+the most important first, warm and personal. Never ask for something the conversation already answers.
+If you already asked questions twice in this conversation, or the customer doesn't know or doesn't mind, set ready to
+true and assume sensible defaults.
+When ready, write the brief with everything known and choose the sections to suggest from: the pieces that complete
+the look, not the ones the customer already owns (e.g. a suit, a shirt and shoes for a wedding guest).
+{TONE} (Not when you only ask questions.)"""
+
+STYLE_PROMPT = f"""You are the personal stylist of an unofficial demo store built on public Suitsupply information.
+Put together one complete outfit for the customer's brief below: a combination of pieces that go together, one of each
+kind (e.g. a suit, a shirt and shoes), not alternatives of the same kind. Name each piece and say in a few words why it
+works (colour, formality, fabric, season, the occasion) and how the pieces work together. Build on what the customer
+already owns and complete the look with products from the numbered list below, at most 4. Use the advice of the
+occasion page sections when it helps.
+Cite every product and every fact from the sources with its number in square brackets, one number per bracket, e.g. [2].
+Pieces the customer owns and your own styling tips need no citation.
+Stay within the budget when the brief has one. If no listed product fits, say so and give styling advice only.
+Never invent products, prices or details. Keep it short. Prices are in EUR, were collected for a demo and may have changed.
+{TRY_ON}
+{TONE}
+
+Sources:
 {{sources}}"""
 
 RECALL_PROMPT = f"""You are the customer service assistant of an unofficial demo store built on public Suitsupply information.
@@ -109,7 +147,11 @@ Decide whether the draft answer below is good enough to send to the customer. It
 2. Every fact (policies, prices, times, products, contact details) is supported by the numbered sources. Nothing is invented.
 3. Every citation [n] points to a source that supports that sentence.
 4. It is clear, polite and not repetitive. It may be in another language than the sources, to match the customer.
-The friendly closing line offering more help is expected and needs no citation.
+The friendly closing line offering more help and the invitation to try products on are expected and need no citation.
+A citation at the end of a sentence covers every fact in it. Recommending a few of the fitting products is fine; it
+doesn't have to list them all. Friendly styling remarks (e.g. "goes well with a white coat") and pieces the customer
+already owns are not invented facts.
+Reject only for real problems, not for wording or style.
 If it is not qualified, list the problems briefly so the writer can fix them.
 
 Sources:
@@ -149,18 +191,28 @@ STORE_FINDER = {
 }
 
 
-IntentName = Literal["greeting", "policy", "store", "product", "order_status", "human", "conversation", "out_of_scope"]
+IntentName = Literal["greeting", "policy", "store", "product", "style", "order_status", "human", "conversation", "out_of_scope"]
 # The coarse group used by the eval, the dashboard and the events table
-ROUTE_OF = {"policy": "policy", "store": "policy", "product": "product"}
+ROUTE_OF = {"policy": "policy", "store": "policy", "product": "product", "style": "style"}
 
 
 class Intent(BaseModel):
     intent: IntentName
     section: Literal[tuple(SECTIONS)] | None = None
-    color: Literal[tuple(COLORS)] | None = Field(None, description="the closest catalog colour, e.g. gray or charcoal -> grey")
-    max_price: float | None = Field(None, description="maximum price in EUR")
-    language: str = Field("English", description="the language the customer writes in")
+    color: Literal[tuple(COLORS)] | None = Field(None, description=(
+        "the colour of the product the customer wants, as the closest catalog colour (gray or charcoal -> grey); "
+        "not the colour of what it should match: shoes for a white coat -> none"
+    ))
+    max_price: float | None = Field(None, description=(
+        "maximum price in EUR; for cheaper options, just below the lowest price recommended before"
+    ))
+    language: str = Field("English", description="the language the customer writes in, as its English name, e.g. English or Dutch")
     country: str | None = Field(None, description="country name in English, only for questions about stores in a country")
+    occasion: Literal[tuple(OCCASIONS)] | None = Field(None, description=(
+        "the closest occasion the customer dresses for, also from the conversation: wedding (also engagement), "
+        "black-tie (gala, tuxedo, formal evening), business (office, interview, meeting), resort (beach, holiday), "
+        "clubbing (night out, party)"
+    ))
     question: str = Field("", description="the latest message as a standalone question")
     elaborate: bool = Field(False, description="the customer asks for more detail on the previous answer")
 
@@ -174,6 +226,18 @@ class Verdict(BaseModel):
     problems: str = Field("", description="what is wrong, when not qualified")
 
 
+class Brief(BaseModel):
+    ready: bool = Field(description="enough is known to suggest a concrete outfit")
+    questions: str = Field("", description="when not ready: at most two short questions about what is missing")
+    brief: str = Field("", description=(
+        "when ready: everything known in one paragraph: occasion, dress code, season, role, budget, colours, "
+        "the look they want and the pieces they own"
+    ))
+    sections: list[Literal[tuple(SECTIONS)]] = Field(
+        default_factory=list, description="when ready: the sections to suggest from, most important first, at most 4"
+    )
+
+
 MAX_DRAFTS = 2  # a rejected draft is rewritten once with the judge's feedback, then it's the fallback
 
 
@@ -182,6 +246,7 @@ class State(MessagesState):
     recent: list[tuple[str, str]]  # the last messages before this one, as (role, text)
     previous_sources: list[str]  # urls the previous answer cited, for "explain more"
     intent: Intent
+    brief: Brief  # style advice only
     sources: list[dict]
     fallback: bool
     draft: str  # the answer before the judge approves it
@@ -191,9 +256,13 @@ class State(MessagesState):
 
 detector = llm.with_structured_output(Intent)
 judge_llm = llm.with_structured_output(Verdict)
+briefer = llm.with_structured_output(Brief)
 
 
 def question(state: State) -> str:
+    # Style advice works from the stylist's brief, which gathers what the customer said over several messages
+    if (b := state.get("brief")) and b.ready:
+        return b.brief
     # After intent detection, use the standalone version so follow-ups like "and in Rotterdam?" can be searched
     i = state.get("intent")
     return i.question if i and i.question else state["messages"][-1].content
@@ -217,7 +286,7 @@ def with_history(prompt: str, state: State) -> str:
     """Puts the conversation in front of a reply prompt, so the assistant continues it instead of starting over.
     In front, not after: behind a long list of sources the model loses the instruction and greets again."""
     # The question is rewritten in English for search, so the customer's own language has to be asked for
-    if (i := state.get("intent")) and i.language.lower() != "english":
+    if (i := state.get("intent")) and i.language.lower() not in ("english", "en"):
         prompt = f"Reply in {i.language}, the customer's language.\n\n{prompt}"
     earlier = history(state)
     if not earlier:
@@ -257,14 +326,39 @@ def product_search(state: State):
     found = [p for p in products() if p["url"] in pages]  # for "explain more": the products recommended before
     if not found:
         found = retrieval.search_products(question(state), i.section, i.color, i.max_price)
-    return {"sources": [
-        {
-            "title": p["name"],
-            "url": p["url"],
-            "text": f"{p['name']} - {p['color']}, {p['material']}, EUR {p['price']:.0f}. {p['description']}",
-            "product": card(p),
-        }
-        for p in found
+    return {"sources": [product_source(p) for p in found]}
+
+
+def product_source(p: dict, note: str = "") -> dict:
+    return {
+        "title": p["name"],
+        "url": p["url"],
+        "text": f"{p['name']} - {p['color']}, {p['material']}, EUR {p['price']:.0f}. {p['description']}{note}",
+        "product": card(p),
+    }
+
+
+def style_brief(state: State):
+    """Asks the customer what's missing (at most two questions), or writes the brief the outfit is built from."""
+    b = briefer.invoke([SystemMessage(with_history(BRIEF_PROMPT, state)), HumanMessage(state["messages"][-1].content)])
+    if b.ready:
+        return {"brief": b}
+    return {"brief": b, "messages": [AIMessage(b.questions)], "sources": []}
+
+
+def style_search(state: State):
+    """The occasion page's advice and the products Suitsupply features for it, then the best matches per section."""
+    b, page = state["brief"], occasions().get(state["intent"].occasion)
+    by_id = {p["id"]: p for p in products()}
+    picks = [by_id[i] for i in page["products"] if i in by_id] if page else []
+    # At most two per piece of the outfit: a page of twelve suits would leave no room for the shirt and shoes
+    picks = [p for section in b.sections for p in [q for q in picks if section_of(q) == section][:2]]
+    found = picks + [p for section in b.sections for p in retrieval.search_products(b.brief, section, k=3)]
+    found = list({p["id"]: p for p in found}.values())  # a pick can also be a search match
+    featured = {p["id"] for p in picks}
+    advice = retrieval.from_pages([page["url"]], b.brief, k=3) if page else []
+    return {"sources": advice + [
+        product_source(p, f" Featured in Suitsupply's {page['title']}." if p["id"] in featured else "") for p in found
     ]}
 
 
@@ -277,7 +371,7 @@ def numbered(sources: list[dict]) -> str:
 
 def answer(state: State):
     # Product questions need recommendations, which a strict "only what the sources say" prompt refuses to give
-    prompt = PRODUCT_PROMPT if state["intent"].intent == "product" else ANSWER_PROMPT
+    prompt = {"product": PRODUCT_PROMPT, "style": STYLE_PROMPT}.get(state["intent"].intent, ANSWER_PROMPT)
     system = with_history(prompt.format(sources=numbered(state["sources"])), state)
     if state["intent"].elaborate:
         system = f"{ELABORATE}\n\n{system}"  # in front, like the conversation, so it isn't lost behind the sources
@@ -330,6 +424,7 @@ NEXT = {
     "policy": "policy_search",
     "store": "policy_search",
     "product": "product_search",
+    "style": "style_brief",
     "order_status": "fallback",
     "human": "fallback",
     "conversation": "recall",
@@ -340,6 +435,8 @@ builder = StateGraph(State)
 builder.add_node(intent)
 builder.add_node(policy_search)
 builder.add_node(product_search)
+builder.add_node(style_brief)
+builder.add_node(style_search)
 builder.add_node(answer)
 builder.add_node(judge)
 builder.add_node(smalltalk)
@@ -349,6 +446,9 @@ builder.add_edge(START, "intent")
 builder.add_conditional_edges("intent", lambda s: NEXT[s["intent"].intent], sorted(set(NEXT.values())))
 builder.add_edge("policy_search", "answer")
 builder.add_edge("product_search", "answer")
+# Not enough known yet: the stylist's questions are the reply, and the customer's answers start the next turn
+builder.add_conditional_edges("style_brief", lambda s: "style_search" if s["brief"].ready else END, ["style_search", END])
+builder.add_edge("style_search", "answer")
 builder.add_conditional_edges("answer", lambda s: "fallback" if s.get("fallback") else "judge", ["fallback", "judge"])
 builder.add_conditional_edges("judge", after_judge, ["answer", "fallback", END])
 builder.add_edge("smalltalk", END)
@@ -403,7 +503,6 @@ def inputs(message: str, memory: str, recent, previous_sources) -> dict:
 def run_agent(message: str, memory: str = "", session_id: str | None = None, recent=(), previous_sources=()) -> dict:
     trace_id, config = run_config(session_id)
     return result(graph.invoke(inputs(message, memory, recent, previous_sources), config=config), trace_id)
-    return result(graph.invoke(inputs, config=config), trace_id)
 
 
 def stream_agent(message: str, memory: str = "", session_id: str | None = None, recent=(), previous_sources=()):

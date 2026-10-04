@@ -1,8 +1,12 @@
 import { formatPrice, type Card } from "@/lib/card";
 
-export default function ProductCard({ product }: { product: Card }) {
+// With onSelect the card opens the product on this site (chat cards); without it, on suitsupply.com
+export default function ProductCard({ product, onSelect }: { product: Card; onSelect?: () => void }) {
+  const link = onSelect
+    ? { href: `/#product-${product.id}`, onClick: (e: React.MouseEvent) => (e.preventDefault(), onSelect()) }
+    : { href: product.url, target: "_blank", rel: "noopener noreferrer" };
   return (
-    <a href={product.url} target="_blank" rel="noopener noreferrer" className="group block">
+    <a {...link} className="group block">
       <div className="aspect-5/6 overflow-hidden bg-surface">
         {product.image && (
           // Images are linked from the source site, not re-hosted

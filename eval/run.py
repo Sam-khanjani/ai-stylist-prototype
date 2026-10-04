@@ -44,6 +44,7 @@ CHECKS = [
     "fact_recall",        # share of expected facts present in the answer
     "product_accuracy",   # product cards satisfy the requested section, color and price
     "no_repeat_greeting", # mid-conversation replies don't start with "Hello" again
+    "asks_when_unclear",  # the stylist asks questions (no products yet) exactly when the request is incomplete
 ]
 NO_CITATIONS = {"greeting", "conversation"}  # small talk and questions about the chat itself have no sources
 # Reported but not pass/fail: ranking quality, and LLM-graded scores that can vary between runs
@@ -97,11 +98,12 @@ def check(g: dict, state: dict, out: dict) -> dict:
         "retrieval_mrr": 1 / ranks[0] if ranks else 0.0 if g["sources"] else None,
         "citation_recall": any(relevant(s["url"]) for s in out["sources"]) if g["sources"] else None,
         "citation_validity": None
-        if g.get("intent") in NO_CITATIONS
+        if g.get("intent") in NO_CITATIONS or g.get("asks")
         else bool(numbers) and all(1 <= n <= len(state["sources"]) for n in numbers),
         "fact_recall": sum(bool(re.search(f, out["reply"], re.I)) for f in g["facts"]) / len(g["facts"]) if g["facts"] else None,
         "product_accuracy": product_ok(out["products"], g["products"]) if g.get("products") else None,
         "no_repeat_greeting": not re.match(r"\W*(hello|hi|hey)\b", out["reply"], re.I) if g.get("history") else None,
+        "asks_when_unclear": (not out["products"] and "?" in out["reply"]) == g["asks"] if "asks" in g else None,
     }
 
 

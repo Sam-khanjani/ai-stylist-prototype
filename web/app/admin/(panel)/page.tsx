@@ -4,7 +4,7 @@ import { adminApi } from "@/lib/admin";
 import BarChart, { lastDays } from "../BarChart";
 import { Card, Legend, ROUTES, RouteBadge, Stat, StatusBadge, ago, pct, seconds, usd, type Tone } from "../ui";
 
-type Day = { day: string; questions: number; policy: number; product: number; other: number; fallbacks: number; up: number; down: number; avg_latency_ms: number | null };
+type Day = { day: string; questions: number; policy: number; product: number; style: number; other: number; fallbacks: number; up: number; down: number; avg_latency_ms: number | null };
 type Row = Record<string, string | number | null>;
 type Section = Row[] | { error: string };
 type Langfuse = { enabled: false } | { enabled: true; usage: Section; daily: Section; models: Section; end_to_end: Section; steps: Section; errors: Section };
@@ -512,7 +512,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-white text-xs text-text-secondary">
                 <tr>
-                  {["Day", "Questions", "Policy", "Product", "Other", "Fallbacks", "👍", "👎", "Avg latency"].map((h) => (
+                  {["Day", "Questions", "Policy", "Product", "Style", "Other", "Fallbacks", "👍", "👎", "Avg latency"].map((h) => (
                     <th key={h} className="pb-2 font-normal">{h}</th>
                   ))}
                 </tr>
@@ -524,6 +524,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                     <td>{d.questions}</td>
                     <td>{d.policy}</td>
                     <td>{d.product}</td>
+                    <td>{d.style}</td>
                     <td>{d.other}</td>
                     <td>{d.fallbacks}</td>
                     <td>{d.up}</td>
