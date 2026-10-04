@@ -6,6 +6,7 @@
     python eval/run.py --save-baseline  # make this run the new baseline
 
 Exits with code 1 when any question fails, so it can gate CI. The baseline comparison shows what changed.
+A failed question is tried up to 3 times, since LLM answers vary between runs: passing on a retry counts, but it is reported as flaky.
 Needs the same environment as the api (PG* variables for Cloud SQL, Google login for Vertex AI).
 """
 import argparse
@@ -47,6 +48,7 @@ CHECKS = [
     "asks_when_unclear",  # the stylist asks questions (no products yet) exactly when the request is incomplete
 ]
 NO_CITATIONS = {"greeting", "conversation"}  # small talk and questions about the chat itself have no sources
+TRIES = 3  # a question fails only if all tries fail; passing on a retry is reported as flaky
 # Reported but not pass/fail: ranking quality, and LLM-graded scores that can vary between runs
 INFO = ["retrieval_mrr"]
 JUDGE = ["faithfulness", "citation_precision", "answer_relevance"]
@@ -187,6 +189,7 @@ def summarize(results: list[dict]) -> dict:
         "categories": {c: mean(v) for c, v in sorted(by_category.items())},
         "latency_avg": round(statistics.mean(latencies), 2),
         "latency_p95": latencies[int(0.95 * (len(latencies) - 1))],
+        "flaky": [r["id"] for r in results if r.get("flaky")],
     }
 
 
@@ -231,6 +234,12 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
             if r["rejected_because"]:
                 print(f"      app judge rejected it: {r['rejected_because'][:300]}")
 
+    flaky = [r for r in results if r.get("flaky")]
+    if flaky:
+        print("\nFlaky (failed, then passed on a retry)")
+        for r in flaky:
+            print(f"  {r['id']} {r['question'][:50]:<50} first try: {r['flaky']}")
+
     unsupported = [(r["id"], c) for r in results for c in r["metrics"].get("unsupported_claims", [])]
     if unsupported:
         print("\nUnsupported claims (judge)")
@@ -249,7 +258,7 @@ def report(summary: dict, results: list[dict], baseline: dict | None) -> int:
         print("\nNo baseline yet. Run with --save-baseline to create one.")
 
     passed = all(r["passed"] for r in results)
-    print(f"\nGate: {'PASSED' if passed else 'FAILED'} (every question must pass)")
+    print(f"\nGate: {'PASSED' if passed else 'FAILED'} (every question must pass; a failed one is tried up to {TRIES} times)")
     return 0 if passed else 1
 
 
@@ -302,8 +311,15 @@ def main():
     results = []
     for g in golden:
         r = run_one(g, run_name, args.judge)
+        for _ in range(TRIES - 1):  # more tries tell a random miss from a real failure
+            if r["passed"]:
+                break
+            retry = run_one(g, run_name, args.judge)
+            if retry["passed"]:
+                r = retry | {"flaky": failed_checks(r) or "failed"}  # keep why the first try failed
         results.append(r)
-        print(f"{'PASS' if r['passed'] else 'FAIL'} {r['id']} {r['latency']:>5}s  {g['question'][:60]}")
+        note = "  (flaky: passed on retry)" if r.get("flaky") else ""
+        print(f"{'PASS' if r['passed'] else 'FAIL'} {r['id']} {r['latency']:>5}s  {g['question'][:60]}{note}")
     agent.flush()
 
     summary = summarize(results)

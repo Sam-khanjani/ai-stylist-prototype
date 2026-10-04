@@ -18,6 +18,7 @@ type Run = {
     latency_avg: number;
     metrics: Record<string, number | null>;
     categories?: Record<string, number | null>;
+    flaky?: string[]; // failed once, passed on retry
   };
   failures: { id: string; question: string; checks: string }[];
   gate_passed: boolean | null;
@@ -414,7 +415,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
             <table className="w-full text-left text-sm">
               <thead className="text-xs text-text-secondary">
                 <tr>
-                  {["Run", "Gate", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Latency"].map((h) => (
+                  {["Run", "Gate", "Answer accuracy", "Intent", "Faithfulness", "Fact recall", "Citation precision", "Multi-turn", "Regressions", "Flaky", "Latency"].map((h) => (
                     <th key={h} className="pr-4 pb-2 font-normal whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -461,6 +462,9 @@ export default async function Dashboard({ searchParams }: PageProps<"/admin">) {
                         ) : (
                           <span className="text-text-secondary">none</span>
                         )}
+                      </td>
+                      <td className="pr-4 text-xs" title="failed once, passed on retry">
+                        {r.summary.flaky?.length ? `! ${r.summary.flaky.join(", ")}` : <span className="text-text-secondary">–</span>}
                       </td>
                       <td className="text-xs text-text-secondary whitespace-nowrap">{r.summary.latency_avg} s</td>
                     </tr>
