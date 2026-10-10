@@ -64,8 +64,17 @@ def chat(req: ChatRequest):
     return result
 
 
+CHAT_HOURLY_LIMIT = int(os.getenv("CHAT_HOURLY_LIMIT", "30"))  # messages per visitor
+# All visitors together: caps the cost, also for scripts that get a new visitor id on every request (no cookie)
+CHAT_TOTAL_HOURLY_LIMIT = int(os.getenv("CHAT_TOTAL_HOURLY_LIMIT", "500"))
+
+
 @app.post("/chat/stream")
 def chat_stream(req: ChatRequest, visitor_id: str = Depends(visitor)):
+    if history.chats_last_hour(visitor_id) >= CHAT_HOURLY_LIMIT:
+        raise HTTPException(429, "You've sent a lot of messages in the last hour. Please take a short break and try again later.")
+    if history.chats_last_hour() >= CHAT_TOTAL_HOURLY_LIMIT:
+        raise HTTPException(429, "The assistant is very busy right now. Please try again in a little while.")
     if req.conversation_id:
         conversation_id = str(req.conversation_id)
         conversation = history.get_conversation(visitor_id, conversation_id)

@@ -94,8 +94,8 @@ python eval/run.py --save-baseline  # make this run the new baseline
 - **Admin dashboard:** questions per day per feature, fallbacks and thumbs-down answers with links to their traces,
   latency per agent step, LLM cost and tokens, recent requests, try-on usage and cost, eval history and system
   status.
-- **Limits and retention:** a daily try-on limit per visitor, chats deleted after 30 days by a scheduled job, and
-  no photos stored.
+- **Limits and retention:** an hourly chat limit per visitor and for all visitors together, a daily try-on limit
+  per visitor, chats deleted after 30 days by a scheduled job, and no photos stored.
 
 ![Admin dashboard](docs/images/dashboard.png)
 

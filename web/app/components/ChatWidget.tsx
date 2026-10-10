@@ -135,12 +135,15 @@ export default function ChatWidget() {
     setBusy(true);
     setMessages((m) => [...m, { role: "user", text }, { role: "assistant", text: "" }]);
 
+    let failure = "Sorry, something went wrong. Please try again.";
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, conversation_id: conversationId }),
       });
+      // Message limit reached: show the api's explanation instead of the generic error
+      if (res.status === 429) failure = (await res.json().catch(() => ({}))).detail ?? failure;
       if (!res.ok || !res.body) throw new Error(`chat returned ${res.status}`);
 
       // Server-Sent Events: blocks separated by a blank line, each with an "event:" and a "data:" line
@@ -172,7 +175,7 @@ export default function ChatWidget() {
         }
       }
     } catch {
-      updateLast({ text: "Sorry, something went wrong. Please try again." });
+      updateLast({ text: failure });
     }
     setBusy(false);
     inputRef.current?.focus();

@@ -122,6 +122,17 @@ def tryons_today(visitor_id: str) -> int:
         ).fetchone()[0]
 
 
+def chats_last_hour(visitor_id: str | None = None) -> int:
+    """Chat messages sent in the last hour, by this visitor or, without one, by everyone together."""
+    with db.connection() as conn:
+        return conn.execute(
+            "SELECT count(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id"
+            " WHERE m.role = 'user' AND m.created_at > now() - interval '1 hour'"
+            " AND (%(visitor)s::uuid IS NULL OR c.visitor_id = %(visitor)s::uuid)",
+            {"visitor": visitor_id},
+        ).fetchone()[0]
+
+
 def record_event(route: str, fallback: bool, latency_ms: int, trace_id: str | None):
     with db.connection() as conn:
         conn.execute(

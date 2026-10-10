@@ -81,6 +81,7 @@ What this project assumes, and what a store would need to adapt before using it.
 - Runs on small settings to keep costs low: the smallest Cloud SQL tier, at most two instances per service, one
   region. Scaling up is a configuration change in Terraform, not a code change, but it hasn't been load tested.
 - Try-on is the most expensive feature, which is why it has its own limit (see above).
-- The chat has no rate limit yet. At scale, a rate limit per visitor (and per IP address) has to be added, so the
-  chat can't be misused for spam, scraping or running up model costs. Until then, set a budget alert before sharing
-  the link widely.
+- The chat has a simple rate limit: 30 messages per visitor per hour, and 500 per hour for all visitors together
+  as a cost cap. A visitor is a browser cookie, so someone who clears cookies starts again; at scale, a limit per
+  IP address or per signed-in customer (for example with Cloud Armor in front of the site) is needed to stop spam
+  and scraping. A budget alert in Billing is still the last line of defence.
